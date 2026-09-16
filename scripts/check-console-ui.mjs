@@ -529,6 +529,26 @@ async function checkUserMenu(page, theme) {
   await page.click('button.avatar');
   await settle(450);
 
+  /* Wait for the 2-factor status to SETTLE on `on` or `off` — the two
+     terminal states — before reading the panel.
+
+     Not "anything but checking…", which is what this said first. The
+     pill's FIRST render is `unknown`, from the reducer's initial state,
+     before the effect dispatches LOAD. That condition resolves on the
+     opening frame and the read lands on `checking…` a moment later, with
+     no Set up / Turn off button rendered yet. The same mistake in
+     verify:mfa skipped its cleanup entirely and left the test approver
+     enrolled, which broke every other headless sign-in. */
+  await page
+    .waitForFunction(
+      () => {
+        const p = document.querySelector('.mfa-row .pill');
+        return p !== null && ['on', 'off'].includes((p.textContent ?? '').trim());
+      },
+      { timeout: 20_000 },
+    )
+    .catch(() => {});
+
   const open = await page.evaluate(() => {
     const el = document.querySelector('.user-panel');
     if (!el) return null;
@@ -539,6 +559,11 @@ async function checkUserMenu(page, theme) {
       role: el.getAttribute('role'),
       expanded: trigger?.getAttribute('aria-expanded'),
       hasSignOut: [...el.querySelectorAll('button')].some((b) => /sign out/i.test(b.textContent ?? '')),
+      /* Two-factor enrolment lives in this panel (2026-09-16). With the pool on
+         OPTIONAL, nothing else in the app offers a way to enrol, so if this row
+         disappears MFA is quietly unreachable while still "enabled". */
+      hasMfaRow: /2-factor/i.test(el.innerText),
+      hasMfaAction: [...el.querySelectorAll('button')].some((b) => /set up|turn off/i.test(b.textContent ?? '')),
       focusInside: el.contains(document.activeElement),
       onScreen: r.top >= 0 && r.left >= 0 && r.right <= window.innerWidth && r.bottom <= window.innerHeight,
       background: getComputedStyle(el).backgroundColor,
@@ -559,6 +584,8 @@ async function checkUserMenu(page, theme) {
   if (!/role/i.test(open.text)) problems.push('no role shown');
   if (!/groups/i.test(open.text)) problems.push('no groups shown');
   if (!open.hasSignOut) problems.push('Sign out is not inside the panel');
+  if (!open.hasMfaRow) problems.push('no 2-factor row — enrolment would be unreachable');
+  if (!open.hasMfaAction) problems.push('no Set up / Turn off control for 2-factor');
   if (open.strayTopbarSignOut) problems.push('a Sign out button is still loose in the top bar');
   if (!open.focusInside) problems.push('focus did not move into the panel');
   if (!open.onScreen) problems.push('panel is not fully on screen');
@@ -586,7 +613,7 @@ async function checkUserMenu(page, theme) {
   if (!(await shut())) problems.push('clicking outside did not close it');
 
   if (problems.length === 0) {
-    pass(`console · ${theme}: user menu opens, shows identity + role + groups, closes cleanly`);
+    pass(`console · ${theme}: user menu opens, shows identity + role + groups + 2-factor, closes cleanly`);
   } else {
     fail(`console · ${theme}: user menu`, problems);
   }
@@ -641,7 +668,15 @@ async function checkDeliveryPanel(page, theme) {
       buttonLabels: buttons.map((b) => (b.textContent ?? '').trim()),
       anyArmed: buttons.some((b) => b.classList.contains('danger')),
       pills,
+      /* The send-history section shows a TABLE when there are deliveries and an
+         explicit empty line when there are none. Both are correct. Capturing
+         both is what stops this check depending on leftover delivery rows —
+         see the note on the assertion below. */
       historyTable: block.querySelector('table') !== null,
+      historyEmptyLine: /nothing has been sent/i.test(block.innerText),
+      hasHistoryHeading: [...block.querySelectorAll('.sub-head')].some((h) =>
+        /send history/i.test(h.textContent ?? ''),
+      ),
       overflowsRight: block.scrollWidth > block.clientWidth + 1,
     };
   });
@@ -655,7 +690,17 @@ async function checkDeliveryPanel(page, theme) {
   const problems = [];
 
   if (!found.hasHeading) problems.push('no "Send to client" heading');
-  if (!found.historyTable) problems.push('no send-history table');
+  /* NOT "there is a table". A lead with no deliveries correctly renders
+     "Nothing has been sent for this proposal." and no table at all.
+     Requiring the table made this check pass only while delivery rows from an
+     earlier verify:email run happened to be lying around, and fail the moment
+     `cleanup:tests` removed them — which is exactly what happened on
+     2026-09-16. The honest assertion is that the section exists and says one
+     of the two true things. */
+  if (!found.hasHistoryHeading) problems.push('no "Send history" heading');
+  if (!found.historyTable && !found.historyEmptyLine) {
+    problems.push('send history shows neither a table nor an explicit empty line');
+  }
 
   // The regression that shipped: three stacked margins.
   if (found.gapAboveHeading < 0 || found.gapAboveHeading > 32) {

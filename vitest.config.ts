@@ -5,7 +5,13 @@ export default defineConfig({
     // Only pure, AWS-free tests run here. Anything needing a deployed backend
     // is a manual verification step in docs/deployment.md, not a unit test —
     // a test suite that silently requires credentials is a trap.
-    include: ['packages/**/*.test.ts', 'amplify/**/*.test.ts'],
+    include: [
+      'packages/**/*.test.ts',
+      'amplify/**/*.test.ts',
+      // The console's DECISION logic (reducers, pure helpers) — never its
+      // components. Anything that needs a DOM is covered by check:ui.
+      'apps/console/src/**/*.test.ts',
+    ],
     environment: 'node',
   },
   resolve: {

@@ -242,6 +242,58 @@ harder the click is to undo, with Delete last. It moved out of the fingerprint c
 2026-08-27; `npm run check:actions` measures the result against the old layout so the move
 cannot be blamed for — or hide — a horizontal-scroll regression.
 
+### `UserMenu` — the account panel, and two-factor enrolment
+
+Initials in the top bar; identity, role, groups, **two-factor**, and Sign out behind a
+click. Sign out is deliberately inside the panel rather than beside it — a rare,
+disruptive action should not sit permanently next to controls people use all day.
+
+**The `2-factor` row was added 2026-09-16, and it is the only place enrolment can
+happen.** The user pool is set to `OPTIONAL` TOTP. That word matters more than it
+looks:
+
+| Pool mode | What the Amplify `Authenticator` does at sign-in |
+|---|---|
+| `REQUIRED` | forces TOTP setup before letting anyone in — no app code needed |
+| `OPTIONAL` | **nothing.** People opt in *after* signing in, which needs `setUpTOTP()` and `updateMFAPreference()` called from a screen you build |
+
+Without this row, the pool setting would be true and every account would stay
+password-only forever. `check:ui` asserts the row and its control are present for
+exactly that reason — the failure mode is silent.
+
+**How the flow is built.** The decisions are a pure reducer in
+[`mfaFlow.ts`](../../apps/console/src/mfaFlow.ts), tested in isolation (20 tests,
+including every Cognito error name `verifyTOTPSetup` can raise and the case where a
+response arrives for a step the person has already left). The component,
+[`MfaSetup.tsx`](../../apps/console/src/MfaSetup.tsx), only calls Amplify, dispatches
+what came back, and renders the step. Same split as `salvage.ts` and `validate.ts`
+on the backend: decisions where they can be tested, I/O where it must be.
+
+Three things in it that are easy to get wrong:
+
+- **Two calls, both required.** `verifyTOTPSetup()` proves the person captured the
+  secret. It does **not** make Cognito challenge them — that needs
+  `updateMFAPreference({ totp: 'PREFERRED' })` as well. Both are awaited before the
+  panel shows "on", so "on" is only ever displayed once it is true.
+- **Two exception names mean "wrong code".** Cognito reports a mistyped code during
+  setup as `EnableSoftwareTokenMFAException`, not `CodeMismatchException`. A screen
+  handling only one shows a raw exception name to half the people who mistype. Both
+  keep the QR on screen for another try; an expired setup
+  (`SoftwareTokenMFANotFoundException`) cannot be retried and starts over.
+- **The secret is shown as text as well as a QR.** Every authenticator app accepts a
+  typed key, and the QR is a canvas render that can fail. If it does, the text key is
+  the whole flow rather than a dead end.
+- **The status read waits for identity.** `fetchMFAPreference()` runs only once the
+  ID token is known (`email` non-null). Opening the panel in the first moments after
+  sign-in used to fire it against an empty session, which rejected in ~5 ms and left
+  the row on "unknown". See [§16.34](16-gotchas.md#1634-optional-mfa-on-the-pool-protects-nobody-by-itself).
+
+The QR is rendered with `qrcode`, which `@aws-amplify/ui-react` already depends on
+for its own TOTP screen — so it is guaranteed present wherever the Authenticator is.
+It is declared in the console's `package.json` anyway; a routine `ui-react` upgrade
+must not be able to silently remove a module this app imports. Its types are a local
+declaration written against the installed source, not a fetched package.
+
 ### `DeliveryPanel`
 
 **Renders INSIDE the approvals panel**, not as a panel of its own. That is deliberate: it

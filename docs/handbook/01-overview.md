@@ -175,7 +175,7 @@ edits authored by this project and handed to the user to review and deploy thems
 |---|---|
 | **Phases 1–5** | Complete and deployed to the `ca-central-1` sandbox. |
 | **The full pipeline** | Proven end to end against real AWS: a real assessment became a real proposal, was approved, and was emailed with the PDF attached. |
-| **Verification** | 356 unit tests, 24 synth checks, 171 live-site checks, 131 browser UI checks, 53 real-UI walk checks, plus live-AWS guest/role/encryption checks. All passing. |
+| **Verification** | 376 unit tests, 24 synth checks, 171 live-site checks, 131 browser UI checks, 53 real-UI walk checks, plus live-AWS guest/role/encryption checks. All passing. |
 | **Not proven** | **Real-world email deliverability.** Sending from a Gmail address via SES fails SPF, DKIM and DMARC, so proposals land in spam. This resolves only at the SES domain cutover, which needs `aeygis.com` DNS access. |
 | **Open items** | **P12** — the backend is the only path a lead has, so a failed submission loses it (a retry absorbs transient failures; the idempotency key is designed, not built). **SES production access**, blocked on DNS. **The live site is not deployed**, so nothing reaches this backend yet. |
 | **Version control** | **None.** There is no git history for this repository. That is the largest self-inflicted risk in the project. |

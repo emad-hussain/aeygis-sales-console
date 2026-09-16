@@ -2773,3 +2773,103 @@ details summary.tiny:hover {
   border-top: 1px solid var(--line);
   text-align: center;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TWO-FACTOR ENROLMENT (inside the account panel)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* The fact row hosts a component, not a value, so it stacks instead of
+   sitting on the baseline like the text rows above it. */
+.user-facts > .mfa-fact {
+  align-items: flex-start;
+}
+
+.user-facts > .mfa-fact dd {
+  flex: 1;
+  min-width: 0;
+}
+
+.mfa-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mfa-action {
+  padding: 0.25rem 0.6rem;
+  font-size: 0.74rem;
+}
+
+.mfa-pill-on { background: var(--accent-tint); color: var(--accent-ink); }
+.mfa-pill-off { background: var(--line); color: var(--dim); }
+.mfa-pill-unknown { background: var(--rose-tint); color: var(--rose); }
+
+.mfa-notice {
+  margin-top: 0.5rem;
+  font-size: 0.74rem;
+}
+
+/* The scan step takes over the row. Everything is stacked and centred: the
+   person is holding a phone up to the screen, not reading a form. */
+.mfa-scan {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  text-align: center;
+}
+
+.mfa-lead {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--body);
+}
+
+.mfa-qr {
+  display: block;
+  border-radius: var(--r-md);
+  /* A white quiet zone regardless of theme. Scanners want contrast, not taste. */
+  background: #fff;
+  padding: 0.35rem;
+  box-sizing: content-box;
+}
+
+.mfa-key-label {
+  margin: 0;
+  font-size: 0.7rem;
+  color: var(--dim);
+}
+
+.mfa-key {
+  display: block;
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+  overflow-wrap: anywhere;
+  user-select: all;
+  padding: 0.35rem 0.5rem;
+  background: var(--line);
+  border-radius: var(--r-md);
+}
+
+.mfa-verify {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mfa-verify input {
+  width: 100%;
+  text-align: center;
+  font-size: 1.05rem;
+  letter-spacing: 0.18em;
+  font-variant-numeric: tabular-nums;
+}
+
+.mfa-verify .row-actions {
+  justify-content: stretch;
+}
+
+.mfa-verify .row-actions > button {
+  flex: 1;
+}

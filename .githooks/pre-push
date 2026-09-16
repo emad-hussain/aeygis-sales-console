@@ -1,0 +1,36 @@
+#!/bin/sh
+#
+# Refuse to push if this repository would expose something it should not.
+#
+# Installed with:  npm run hook:install
+# (which sets core.hooksPath to .githooks, so this file travels with the repo
+#  rather than living in .git/hooks where a fresh clone would never see it)
+#
+# Checks two things — see scripts/check-git-safety.mjs for the reasoning:
+#   1. no forbidden file is TRACKED (credentials, generated config, the
+#      confidential PDFs) — never waivable
+#   2. the GitHub remote is not PUBLIC — waivable, deliberately
+#
+# To push anyway, knowing the repo is public:
+#   git push --no-verify
+# or
+#   AEYGIS_SKIP_VISIBILITY=1 git push
+#
+# The escape hatch is intentional. A guard with no way past it gets disabled
+# wholesale the first time it is inconvenient, and then protects nothing.
+
+if [ -n "$AEYGIS_SKIP_VISIBILITY" ]; then
+  node scripts/check-git-safety.mjs --skip-visibility
+else
+  node scripts/check-git-safety.mjs
+fi
+
+status=$?
+if [ $status -ne 0 ]; then
+  echo ""
+  echo "Push refused. Fix the above, or:"
+  echo "  AEYGIS_SKIP_VISIBILITY=1 git push   (waives ONLY the public-repo warning)"
+  echo "  git push --no-verify                (skips this check entirely)"
+  echo ""
+fi
+exit $status

@@ -699,3 +699,83 @@ returned `phone: String` with `AWSPhone` appearing zero times — which is a fac
 running API, not a claim by the deployer.
 
 Related: §16.28 — the same command's output never reaches a pipe, only a file.
+
+---
+
+## 16.34 `OPTIONAL` MFA on the pool protects nobody by itself
+
+Setting `multifactor: { mode: 'OPTIONAL', totp: true }` on the user pool is true of
+the pool and false of every account, until something lets a person enrol.
+
+| Pool mode | What the Amplify `Authenticator` does |
+|---|---|
+| `REQUIRED` | forces TOTP setup at the next sign-in — no app code needed |
+| `OPTIONAL` | **nothing**. Opting in happens *after* sign-in, via `setUpTOTP()` and `updateMFAPreference()`, which need a screen to be called from |
+
+Verified against the installed `@aws-amplify/ui` core rather than assumed: it
+handles the three sign-in **challenge** steps (`CONFIRM_SIGN_IN_WITH_TOTP_CODE`,
+`CONTINUE_SIGN_IN_WITH_TOTP_SETUP`, `CONTINUE_SIGN_IN_WITH_MFA_SELECTION`) and offers
+no post-sign-in enrolment. So "MFA is on" would have shipped as a pool setting with
+every account still password-only, and nothing anywhere would have said so.
+
+The enrolment panel in `UserMenu` exists for this reason, and `check:ui` asserts its
+row and control are present because the failure is silent.
+
+**Two things inside it that are easy to get wrong:**
+
+- **`verifyTOTPSetup()` is not enough.** It proves the person captured the secret.
+  Cognito only *challenges* at sign-in once `updateMFAPreference({ totp:
+  'PREFERRED' })` has also run. The panel awaits both before showing "on".
+- **Two exception names mean "wrong code".** Cognito reports a mistyped code during
+  setup as `EnableSoftwareTokenMFAException`, not `CodeMismatchException`. Handle one
+  and half the people who mistype see a raw exception name.
+
+**And one found by running it, not reading it.** A headless check clicked the avatar
+the instant it rendered — before `useRole` had the ID token — and
+`fetchMFAPreference()` rejected locally in ~5 ms with no request sent, leaving the row
+on "unknown" with no way back short of closing and reopening. A fast human does the
+same thing. The status read is now gated on the identity being known, and both the
+one-off check and `checkUserMenu` wait for the status to settle instead of pausing
+for a fixed 450 ms — a fixed pause was racing that same round-trip.
+
+`npm run verify:mfa` proves the whole thing end to end without a phone: it reads the
+secret the panel shows and computes the TOTP code itself (RFC 6238 is twenty lines),
+then confirms against Cognito — not the panel — that the method is enabled and
+preferred, signs out, and checks that sign-in now stops at a challenge.
+
+---
+
+## 16.35 "Not the loading state" is not the same as "settled"
+
+A headless check waited for a status pill to read **anything but `checking…`** before
+reading it. That looks like the obvious condition and it is wrong.
+
+The pill's **first** render is `unknown` — the reducer's initial state, rendered before
+the effect dispatches `LOAD`. So the wait resolved on the opening frame, and the read
+that followed landed on `checking…` a moment later, once the effect had run.
+
+```
+render 1:  unknown     <- wait resolves here
+render 2:  checking…   <- the read lands here
+render 3:  on          <- what was actually wanted
+```
+
+**What it cost.** In `verify:mfa` the value was fed to `if (status === 'on')`, which
+therefore never ran, so **"Turn off" was never clicked** and the test approver was left
+with `SOFTWARE_TOKEN_MFA` preferred. `check:ui`, `verify:email` and `verify:mfa` all
+sign in as that account with a password, and Cognito began meeting them with a TOTP
+challenge they do not answer. One wait condition in a cleanup path broke every headless
+sign-in in the project, and the failure it printed — *"could not turn MFA off again"* —
+pointed at Cognito rather than at itself.
+
+**Wait for the terminal states by name**, not for the absence of a transient one:
+
+```js
+['on', 'off'].includes(text)     // settled
+!/checking/i.test(text)          // true on the very first frame
+```
+
+**The second lesson is about cleanup.** Any check that mutates shared state should
+restore it in a `finally`, through the most direct mechanism available — here the admin
+API, not the UI it happens to be testing. Driving the UI proves the button works;
+it must not also be the only thing standing between a failed run and a broken fixture.

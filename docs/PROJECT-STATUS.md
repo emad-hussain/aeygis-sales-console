@@ -37,7 +37,7 @@ Covered (non-exhaustive): `cdk bootstrap`, `ampx sandbox`, `ampx pipeline-deploy
 | **Progress** | **Phases 1–4 complete. P4–P11 all RESOLVED and deployed.** The client proposal is now **17 pages**, ending on Acceptance: current-state summary, spend comparison (shown only when favourable), migration track, indicative schedule, shared responsibility matrix, IT-provider co-existence, service levels, scope/terms and acceptance. The technical-discovery appendix and the sources-and-references appendix were both **removed on request (2026-08-23)**. Non-approved versions can be deleted. **Phase 5 shipped 2026-08-23/24:** an approver can email an approved proposal from the console, the PDF rides as an attachment, and every attempt is recorded as an immutable `ProposalDelivery` row (`sent` / `blocked` / `failed`). A real proposal was sent and received. **Sandbox only** - exactly one verified recipient, and deliverability to real clinics is unproven until the SES domain cutover (see `email-setup.md`). Remaining: nothing in code. P13 closed 2026-08-26, P1/P2 superseded 2026-08-25, P3 declined by the user, Phase 6 complete. |
 | **AWS resources provisioned** | Sandbox live in `326629581669` / `ca-central-1`, including a `ChromiumPack` stack (private S3 bucket + CloudFront/OAC) and a `delete-proposal-version` Lambda. See `aws-resources.md`. |
 | **Console UI** | **Rebuilt in the "Porcelain" direction (2026-08-23)** — warm light SaaS, floating white cards, Manrope + IBM Plex Mono, teal accent, **plus a full dark theme with a toggle**. Chosen from four rendered candidates in `ui/`. Supersedes "Signal"; the indigo rail is gone. Verified by `npm run check:ui` — **131** browser checks in both themes at five widths, now including the delivery block. |
-| **Verification** | **356/356 unit tests** · `depcruise` clean (101 modules, 183 dependencies) · `npm run check:synth` 24/24 (synthesizes `backend.ts` locally and inspects the CloudFormation - no AWS calls) · console build clean · `npm run check:layout` measures all 17 proposal pages for overflow · encryption verified against live AWS **2026-08-26: all 5 tables on the CMK with PITR, `ProposalDelivery` included** · **and — the one that matters — `scripts/verify-discovery-and-delete.mjs` walks the REAL UI against the deployed backend: 53 checks, all by clicking. Adds custom questions, a schedule estimate and a responsibility row, saves, RELOADS, confirms persistence, generates, fetches the PDF from the tab the browser opened and confirms the new content is in its text (and that an excluded row is genuinely absent), then deletes a version and confirms it stays gone across a reload.** |
+| **Verification** | **356/376 unit tests** · `depcruise` clean (105 modules, 188 dependencies) · `npm run check:synth` 24/24 (synthesizes `backend.ts` locally and inspects the CloudFormation - no AWS calls) · console build clean · `npm run check:layout` measures all 17 proposal pages for overflow · encryption verified against live AWS **2026-08-26: all 5 tables on the CMK with PITR, `ProposalDelivery` included** · **and — the one that matters — `scripts/verify-discovery-and-delete.mjs` walks the REAL UI against the deployed backend: 53 checks, all by clicking. Adds custom questions, a schedule estimate and a responsibility row, saves, RELOADS, confirms persistence, generates, fetches the PDF from the tab the browser opened and confirms the new content is in its text (and that an excluded row is genuinely absent), then deletes a version and confirms it stays gone across a reload.** |
 | **Blocked on** | Nothing in code. **SES production access was DENIED 2026-09-13** (case `178930966200969`), almost certainly because the only sending identity was a personal Gmail and no Aeygis domain is verified in SES. **Correction to a long-standing claim here:** this was never blocked on "DNS access" — `aeygis.com` is live on Hostinger nameservers with managed records and Google Workspace mail. **Resolved 2026-09-14:** `aeygis.com` is verified with `DkimStatus: SUCCESS`, and a reply answering AWS's questions has been sent on the case. Now waiting on AWS. The sender stays on the test Gmail until access is granted — the domain publishes **`DMARC p=quarantine`**, so switching early would quarantine mail by Aeygis's own policy. See `email-setup.md`. |
 | **Open pending items** | **P12** the backend is the ONLY path a lead has · ~~the SES cutover~~ ✅ **COMPLETE 2026-09-16** — sending as `aws@aeygis.com`, DKIM-aligned, a real send landed in an inbox, allowlist open · **the live site is not deployed — the OLD pricing is still public** · `git init` — see PENDING ITEMS. P1/P2 superseded 2026-08-25 (no dual-write exists); P3 declined 2026-08-23; P4–P11 closed. |
 | **AppSync endpoint** | `https://p562sq56szd4tnzalxnz2iqfmi.appsync-api.ca-central-1.amazonaws.com/graphql` |
@@ -453,12 +453,38 @@ copied forward from the previous entry.
 
 | # | Item | Owner | Blocks |
 |---|---|---|---|
+| 0 | **The platform runs on an Amplify SANDBOX stack, not a production deployment** | user + us | see [production-deployment.md](production-deployment.md) |
 | 1 | **The live site is not deployed** | user | everything below it, and real lead capture |
 | 2 | ~~SES production access~~ | — | ✅ **GRANTED 2026-09-16** (50,000/24 h, 14/s) |
 | 3 | ~~Sender, SNS, allowlist~~ | — | ✅ **DONE 2026-09-16.** Only the SNS confirmation click remains |
 | 4 | `git init` — **neither repo is under version control** | user | nothing, until something is lost |
-| 5 | Cognito **MFA is OFF**, deletion protection **INACTIVE** | user decision | nothing today |
+| 5 | ~~Cognito MFA~~ ✅ **DEPLOYED AND PROVEN 2026-09-16** (`OPTIONAL` TOTP, enrolment in the account panel, `verify:mfa` 14/14). Deletion protection still **INACTIVE** | user: decide on deletion protection | nothing |
 | 6 | ~~The `131` figure for `check:ui` is unverified~~ | — | ✅ **verified 2026-09-16: 131/131** |
+
+### 0 was only discovered on 2026-09-16, and it reorders the rest
+
+The CloudFormation stack is tagged `amplify:deployment-type = sandbox`. There is no
+Amplify Hosting app for this project; every deploy has been `npx ampx sandbox` from
+one laptop.
+
+That is not merely untidy. Amplify **overrides safety settings** in a sandbox and
+says so during the deploy — `keepOnDelete is ignored in sandbox deployments. The
+bucket will be deleted.` The code asked for the proposals bucket to be retained and
+was refused. Deletion protection is off on all five tables and the user pool, and
+`npm run sandbox:delete` destroys the lot.
+
+**It reorders the other items** because the migration changes the AppSync endpoint
+and the Cognito identity pool id, and the public website hardcodes both. Deploying
+the site first means deploying it twice.
+
+Two resources make this a now-or-later decision rather than a whenever-one: the SES
+configuration sets and the KMS alias have **fixed, account-unique names**, so a
+branch deployment cannot be created alongside the sandbox. Today the `Assessment`
+table is empty and the rest is verification residue, so the cheap path — delete,
+then recreate — is available. Once real leads exist it is not, and the work becomes
+a side-by-side migration with an environment-suffix code change.
+
+Full procedure, blockers and rollback position: [production-deployment.md](production-deployment.md).
 
 ### 1 is bigger than "not deployed yet"
 
@@ -506,6 +532,83 @@ Three items are deliberately NOT done. None blocks Phase 2. All must be closed
 before the system handles a real prospect. Do not let these disappear into
 scrollback - they are recorded here because each is easy to forget and costly to
 discover late.
+
+### P15. Two-factor authentication for the console — ✅ CLOSED 2026-09-16
+
+Chosen by the user 2026-09-16 (`OPTIONAL`, TOTP) ahead of the console being hosted
+publicly. Three parts, and only the first is live:
+
+| | State |
+|---|---|
+| Enrolment panel in `UserMenu` (`MfaSetup.tsx` + `mfaFlow.ts`, 20 tests) | ✅ built and asserted by `check:ui` in both themes |
+| Pool setting `multifactor: OPTIONAL / totp` | ✅ **deployed** — the live pool reads `MfaConfiguration: OPTIONAL`, `SoftwareTokenMfaConfiguration.Enabled: true` |
+| End-to-end proof (`npm run verify:mfa`) | ✅ **14/14** — enrol, confirmed with Cognito, challenged at sign-in, restored |
+
+Deployed 2026-09-16. The synth diff predicted an in-place update and that is what
+happened: the pool's `LastModifiedDate` moved, the three test accounts are intact.
+
+`npm run verify:mfa` output:
+
+```
+PASS  entered a computed TOTP code — panel now reads "on"
+PASS  Cognito confirms SOFTWARE_TOKEN_MFA is enabled for the user
+PASS  Cognito confirms it is the PREFERRED method (so sign-in will challenge)
+PASS  sign-in now stops at a TOTP challenge — the password alone is no longer enough
+PASS  the computed code satisfied the challenge — signed in with password + TOTP
+PASS  the "Turn off" button un-enrolled the account — confirmed with Cognito
+PASS  test approver left password-only
+```
+
+**Why the panel had to exist:** with `OPTIONAL`, Cognito never prompts anyone — the
+Authenticator only forces setup on a `REQUIRED` pool. Without an enrolment screen the
+pool setting would be true and every account password-only. [§16.34](handbook/16-gotchas.md#1634-optional-mfa-on-the-pool-protects-nobody-by-itself).
+
+#### Two defects the first run exposed, both now fixed
+
+**1. A wait condition that looked equivalent and was not.** The script waited for the
+status pill to show "anything but `checking…`". The pill's **first** render is
+`unknown` — the reducer's initial state, before the effect dispatches `LOAD` — so the
+wait resolved on the opening frame and the read landed on `checking…` a moment later.
+The cleanup's `if (status === 'on')` branch therefore never ran, **Turn off was never
+clicked**, and the test approver was left enrolled.
+
+That is worse than it sounds. `check:ui`, `verify:email` and `verify:mfa` all sign in
+as that account **with a password**, and Cognito now met them with a TOTP challenge
+they do not answer. One bad wait condition in a cleanup path silently broke every
+headless sign-in in the project. Both scripts now wait for a *settled* `on` or `off`.
+
+**2. The restore was best-effort, and is now guaranteed.** It drove the UI and read
+Cognito once. It now runs in a `finally` via `AdminSetUserMFAPreference`, so a crashed
+browser or a missed click cannot leave the account enrolled, and it prints the exact
+one-line CLI fix if even that fails. The UI "Turn off" is still exercised — as an
+assertion about the button, not as the safety net.
+
+#### An unrelated check that was quietly depending on leftover data
+
+`check:ui`'s delivery block asserted *"there is a send-history table"*. A lead with no
+deliveries correctly renders **"Nothing has been sent for this proposal."** and no
+table at all. The assertion only ever passed because delivery rows from an earlier
+`verify:email` run happened to be lying around; `cleanup:tests` removed them and it
+went red. It now accepts either, which is the honest statement of what the UI does.
+
+**Order from here:** the console may now be hosted — that was the precondition.
+
+**The deploy is safe — confirmed by synth diff, not assumed (2026-09-16).** A fresh
+synth against the last deployed template changes exactly two `UserPool` properties:
+
+```
+EnabledMfas       null  ->  ["SOFTWARE_TOKEN_MFA"]
+MfaConfiguration  null  ->  "OPTIONAL"
+```
+
+Neither is among the properties CloudFormation replaces the pool for (`Schema`,
+`UsernameAttributes`, `AliasAttributes`, `UsernameConfiguration`). **In-place update;
+every account is kept.**
+
+Gate: **376/376 tests, typecheck clean, 24/24 synth, depcruise clean (105 modules),
+console build clean, `check:ui` 131/131, `check:actions` 8/8, `verify:mfa` 14/14.**
+
+---
 
 ### P14. Console tidy-up + lead advances to `proposed` on send — ✅ CLOSED 2026-08-27
 

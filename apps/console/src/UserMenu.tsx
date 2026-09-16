@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { signOut } from 'aws-amplify/auth';
 import type { Role } from './useRole';
+import { MfaSetup } from './MfaSetup';
 
 interface Props {
   readonly email: string | null;
@@ -98,6 +99,15 @@ export function UserMenu({ email, name, role, roleLoading, groups }: Props) {
             <div>
               <dt>Groups</dt>
               <dd className="mono">{groups.length > 0 ? groups.join(', ') : 'none'}</dd>
+            </div>
+            {/* Two-factor lives with the other account facts, not in a
+                separate settings screen: it is a property of THIS sign-in,
+                and this is the one place the person already looks for that. */}
+            <div className="mfa-fact">
+              <dt>2-factor</dt>
+              <dd>
+                <MfaSetup email={email} />
+              </dd>
             </div>
           </dl>
 

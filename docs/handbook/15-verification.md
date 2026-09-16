@@ -30,7 +30,7 @@ So the layers below are ordered by how much reality each one touches.
 ## 15.2 Layer 1 — unit tests (free, no AWS)
 
 ```bash
-npm test          # 356 tests across 16 files, ~2 seconds
+npm test          # 376 tests across 17 files, ~2 seconds
 ```
 
 **Only pure, AWS-free tests run here.** Anything needing a deployed backend is a manual
@@ -84,7 +84,7 @@ require AWS credentials. Hence `identity.ts`, `recipientPolicy.ts`, `emailBody.t
 
 ```bash
 npm run lint:boundaries
-# ✔ no dependency violations found (101 modules, 183 dependencies cruised)
+# ✔ no dependency violations found (105 modules, 188 dependencies cruised)
 ```
 
 Seven rules, all `severity: error`, checked **transitively**
@@ -460,6 +460,42 @@ any more now that `phone` is a string, which is the point — salvage is covered
 
 ---
 
+### `verify-mfa-enrolment.mjs` — ⛔ changes the test approver's MFA state, then restores it
+
+```bash
+npm run console                       # in one terminal
+AWS_PROFILE=aeygis npm run verify:mfa # in another
+```
+
+The end-to-end proof for two-factor, with no phone involved. It reads the TOTP secret
+the panel displays as text and computes the code an authenticator app would show
+(RFC 6238 — base32, HMAC-SHA1, dynamic truncation), enrols, and then does the three
+checks that actually matter:
+
+| Check | Why it is separate |
+|---|---|
+| Cognito lists `SOFTWARE_TOKEN_MFA` **and** marks it preferred | asked of Cognito directly, not the panel — the panel could say "on" while `updateMFAPreference()` had silently failed |
+| Signing out and back in **stops at a challenge** | this half is Amplify's, and it only exists once the preference is set. Enrolment that produces no challenge is decoration |
+| The computed code satisfies the challenge | proves the secret the panel showed is the one Cognito holds |
+
+Then it turns MFA back off **twice over**: once through the UI, as an assertion that
+the Turn off button works, and once unconditionally in a `finally` via
+`AdminSetUserMFAPreference`. The second is the safety net — the first run of this
+script left the test approver enrolled, and because every headless script signs in as
+that account with a password, Cognito then met all of them with a TOTP challenge they
+do not answer. See [§16.35](16-gotchas.md#1635-not-the-loading-state-is-not-the-same-as-settled).
+
+Codes are single-use within a 30-second step, so the second entry waits for the step to
+roll over rather than reusing one.
+
+**It checks the deployed pool first.** `auth/resource.ts` can say `OPTIONAL` while the
+live pool still says `OFF` — `updateMFAPreference()` then fails in a way that reads
+like a bug in the panel. The script refuses with the real reason instead.
+
+`checkUserMenu` in `check:ui` also gained two assertions on 2026-09-16 — the 2-factor
+row and its Set up / Turn off control — and now waits for the status read to settle
+instead of a fixed pause, which had been racing that round-trip.
+
 ## 15.7 Layer 6 — the real-UI walk (⛔ needs AWS + a browser)
 
 ```bash
@@ -587,8 +623,8 @@ Before a deploy:
 
 ```bash
 npm run typecheck
-npm test                 # 356
-npm run lint:boundaries  # 101 modules, 0 violations
+npm test                 # 376
+npm run lint:boundaries  # 105 modules, 0 violations
 npm run check:synth      # 24
 npm run check:actions    # row-action layout, no AWS and no dev server
 npm run check:ui         # 131  (needs npm run console running + rows in the table)

@@ -336,7 +336,7 @@ The email-sender rule was added with Phase 5, because **the proposal email is
 client-facing in two ways at once**: the body it composes and the PDF it attaches both land
 in a prospect's inbox.
 
-Current state: **101 modules, 183 dependencies, zero violations.**
+Current state: **105 modules, 188 dependencies, zero violations.**
 
 > **A failure here is a confidentiality incident, not a lint nit.** Do not add an
 > exception.

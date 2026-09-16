@@ -1,0 +1,77 @@
+# Amplify Hosting build spec — backend and console, one app, one branch.
+#
+# ═══════════════════════════════════════════════════════════════════════════
+# WHY THIS FILE EXISTS
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Everything ran on an `ampx sandbox` stack until now. A sandbox is a personal,
+# disposable environment and Amplify treats it as one — it OVERRIDES safety
+# settings and says so during the deploy:
+#
+#   [@aws-amplify/backend-storage] keepOnDelete is ignored in sandbox
+#   deployments. The bucket will be deleted.
+#
+# The code asked for the proposals bucket to be retained and was refused,
+# *because* it was a sandbox. `pipeline-deploy` builds the same backend with
+# `type: 'branch'` instead, and those overrides do not apply.
+#
+# It also hard-refuses to run outside CI — see the RunningPipelineDeployNotInCi
+# check in @aws-amplify/backend-cli. That refusal is the point: a deploy from
+# somebody's laptop leaves no record of who deployed what, or when.
+#
+# ═══════════════════════════════════════════════════════════════════════════
+# THE GATE RUNS BEFORE THE DEPLOY, NOT AFTER
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Amplify's own `test` phase runs AFTER the frontend build, which is after the
+# backend has already been deployed — useless as a gate. So the checks run
+# first in the backend phase, and a failure stops the deploy instead of
+# reporting on one that already happened.
+#
+# check:synth is included despite adding a couple of minutes. It asserts the
+# things that are expensive to get wrong: that no client-facing function can
+# reach `proposals/internal/*`, that ses:SendEmail is scoped to named
+# identities rather than a wildcard, that append-only models expose no
+# update/delete mutation, and that no Assessment field uses a scalar which
+# rejects ordinary human input. Those are worth two minutes a deploy.
+
+version: 1
+
+backend:
+  phases:
+    preBuild:
+      commands:
+        # Root install: npm workspaces, so this covers packages/* and apps/*.
+        - npm ci --cache .npm --prefer-offline
+    build:
+      commands:
+        - echo "branch=$AWS_BRANCH  app=$AWS_APP_ID"
+
+        # ---- the gate. A failure here stops the deploy. ----
+        - npm run typecheck
+        - npm test
+        - npm run check:synth
+
+        # ---- deploy ----
+        # Writes amplify_outputs.json to the repo root, which is where
+        # apps/console/src/main.tsx imports it from
+        # (`../../../amplify_outputs.json`). The frontend phase below depends
+        # on that file existing, so the order is not incidental.
+        - npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
+
+frontend:
+  phases:
+    build:
+      commands:
+        # `tsc --noEmit && vite build` — the typecheck here also proves the
+        # generated amplify_outputs.json satisfies the Schema types the console
+        # imports, which a backend-only check cannot.
+        - npm run build --workspace apps/console
+  artifacts:
+    baseDirectory: apps/console/dist
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - .npm/**/*
+      - node_modules/**/*

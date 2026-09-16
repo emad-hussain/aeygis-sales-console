@@ -271,6 +271,77 @@ ships when the user next deploys the live site.
 
 ---
 
+## 11. Internal cost data was pushed to a PUBLIC GitHub repo — 2026-09-16
+
+`packages/pricing-internal/src/index.ts` was readable by anyone, no login, for
+roughly an hour at `github.com/emad-hussain/aeygis-sales-console`.
+
+It contains delivery cost per hour (75–100 CAD standard, 100–130 on-call), the
+cost ratio against Canadian competitors, a competitor pricing table, approximate
+staffing per tier, the margin calculation, and the negotiation playbook. That is
+the Rate Card's substance, in code.
+
+`created_at 14:14Z`, `pushed_at 15:06Z`, **0 forks, 0 stars**. Low odds a person
+saw it; automated scrapers index new public repos within minutes, so the data is
+**possibly** out, not certainly contained. The user is aware and has chosen to
+make the repo private later.
+
+**No credentials leaked.** `.gitignore` correctly excluded `.test-credentials.json`,
+`amplify_outputs*.json` and `.env`. Verified by two independent scans: the only
+AWS-key-shaped strings in the repo are `ASIAIOSFODNN7EXAMPLE` (AWS's own
+documentation example) and `ASIASTUBSTUBSTUBSTUB`. The website repository, which
+holds `Aeygis_Cloud_Rate_Card.pdf`, was never pushed at all.
+
+### Why the five barriers did not stop it
+
+They were never meant to. Barriers 1–5 — the dependency-cruiser rule, the closed
+payload type, the schema exclusion, the IAM scoping, the runtime `assertClientSafe`
+guard — all answer one question: *can this data reach a client-facing document?*
+They answer it well, and every one of them held.
+
+**Not one of them concerns source control.** The question "what if the repository
+becomes public" had never been asked, so nothing guarded it. A confidentiality
+model is only as wide as the exits somebody thought to enumerate.
+
+### What was added
+
+`npm run check:git`, and a `.githooks/pre-push` hook that runs it
+(`npm run hook:install`). Two checks:
+
+| Check | Waivable? |
+|---|---|
+| No forbidden file is TRACKED — credentials, generated config, confidential PDFs | **no** |
+| The GitHub remote is not public | yes, `AEYGIS_SKIP_VISIBILITY=1` |
+
+**It does not gitignore `packages/pricing-internal`, deliberately.** That file is
+not wrong to be in the repository — a private repo holding a company's own cost
+model is ordinary — and it cannot be removed anyway:
+`render-proposal-pdf/assertClientSafe.test.ts` imports it **on purpose**, to prove
+the leak guard catches real internal values rather than invented lookalikes.
+Ignoring the package breaks `npm test` on every fresh clone while
+`package-lock.json` still references it as a workspace.
+
+The failure was not "this file is committed". It was "this repository is public",
+so that is what is checked.
+
+### Two bugs found while building the check
+
+Both would have made the guard worse than useless, and both were caught by
+running it rather than reading it:
+
+- **`--skip-visibility` did nothing.** The flag was parsed at the END of the
+  script, after failures had already been counted — it printed a reassuring line
+  and changed no outcome. An override that does not override is worse than no
+  override, because someone will trust it.
+- **The script exited 127, not 1.** Calling `process.exit()` with an open `fetch`
+  socket crashes Node on Windows with a libuv assertion. A pre-push hook reads
+  that exit code. Fixed by cancelling the response body and using
+  `process.exitCode`, then verified by measuring the code directly rather than
+  through a pipe — `$?` after `| tail` reports *tail's* status, which had briefly
+  made a blocking hook look like a passing one.
+
+---
+
 ## Open questions for the rate-card owner
 
 Neither blocks the build; both affect real quotes.

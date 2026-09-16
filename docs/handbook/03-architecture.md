@@ -122,7 +122,7 @@ call site has to handle it.
 
 `@aeygis/pricing` has **zero AWS dependencies**, enforced by a dependency-cruiser rule.
 Every tier and eligibility rule is unit-testable without credentials, which is why 99 of
-the 356 tests cover pricing behaviour.
+the 376 tests cover pricing behaviour.
 
 Two design choices matter more than the purity:
 
@@ -256,7 +256,7 @@ packages/pricing-internal   ⚠ CONFIDENTIAL. May import pricing.
 | `no-circular` | any circular import — they would make the rules above unenforceable |
 
 All rules are `severity: error` and are checked transitively
-(`tsPreCompilationDeps: true`). Current state: **101 modules, 183 dependencies, zero
+(`tsPreCompilationDeps: true`). Current state: **105 modules, 188 dependencies, zero
 violations.**
 
 **A failure here is a confidentiality incident, not a lint nit.**

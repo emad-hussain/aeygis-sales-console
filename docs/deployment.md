@@ -1,5 +1,10 @@
 # Deployment
 
+> ⚠ **This document describes deploying the Amplify SANDBOX**, which is what the
+> project runs on today. Moving to a proper production branch deployment is a
+> different procedure with its own blockers — see
+> [production-deployment.md](production-deployment.md).
+
 > **Living document.** Updated in the same session as any change it describes.
 >
 > **Status (2026-08-26): Phases 1–6 complete.** All six Lambdas, five models and the
