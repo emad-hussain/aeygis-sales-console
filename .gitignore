@@ -1,0 +1,49 @@
+# dependencies
+node_modules/
+
+# Amplify Gen 2 — generated, never commit
+.amplify/
+amplify_outputs*.json
+amplifyconfiguration*.json
+
+# build output
+dist/
+build/
+*.tsbuildinfo
+
+# env / secrets — never commit
+.env
+.env.*
+!.env.example
+
+# AWS
+.aws-sam/
+cdk.out/
+
+# editor / OS
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# test / coverage
+coverage/
+
+# Chromium binaries (fetched or layered, never committed)
+*.br
+chromium*.zip
+chromium-pack.tar
+
+# local test user credentials - never commit
+.test-credentials.json
+
+# local preview artifacts
+proposal-preview.pdf
+proposal-preview.html
+
+# staged lambda layer (regenerate with npm run build:layer)
+layers/
+.artifacts/
+
+*.txt

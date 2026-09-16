@@ -1,0 +1,26 @@
+{
+  "name": "@aeygis/console",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Internal meeting console. Cognito-authenticated; contributor and approver roles.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit -p tsconfig.json && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@aeygis/domain": "*",
+    "@aeygis/pricing": "*",
+    "@aws-amplify/ui-react": "^6.15.5",
+    "aws-amplify": "^6.20.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^6.0.5",
+    "vite": "^8.2.1"
+  }
+}

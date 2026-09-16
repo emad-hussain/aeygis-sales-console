@@ -1,0 +1,2775 @@
+/*
+ * Aeygis Health — internal sales console.  DIRECTION: "Porcelain".
+ *
+ * ── Chosen direction ──────────────────────────────────────────────────────
+ * Warm light SaaS in the Stripe/Notion lineage, selected from four rendered
+ * candidates (see ui/README.md). White cards FLOATING on a warm paper
+ * ground, big soft shadows, generous radii, pastel status tints, springy
+ * pop-in motion. Aeygis teal is the single saturated accent.
+ *
+ * Supersedes "Signal" (indigo rail, 6px radii, medium density) and, before
+ * that, a dense-enterprise pass. The indigo rail is gone entirely — it was
+ * never an Aeygis colour, and Porcelain has no rail to put it on.
+ *
+ * ── Structure ─────────────────────────────────────────────────────────────
+ * An APP FRAME, not a document: 100dvh, no page scroll. A translucent top
+ * bar, then two independently-scrolling columns — the intake queue and the
+ * clinic detail. Reviewing a clinic means moving between columns, not
+ * scrolling one endless page.
+ *
+ * ── Type ──────────────────────────────────────────────────────────────────
+ * Manrope + IBM Plex Mono. Manrope's high-waisted, slightly geometric
+ * lowercase is what gives Porcelain its warmth at small sizes; its 800
+ * weight carries headings without needing a display face.
+ *
+ * Mono is load-bearing, not decorative — the rule carries over from the
+ * previous direction and is worth keeping. It is reserved for
+ * machine-generated facts: reference ids, content hashes, version keys,
+ * money. Sans is for human content. You can tell at a glance whether a
+ * value was typed by a person or minted by the system.
+ *
+ * ── Colour ────────────────────────────────────────────────────────────────
+ * Teal #0b8585 is the one VERIFIED brand value (the live health.aeygis.com
+ * meta theme-color) and is the action/accent colour throughout. The status
+ * hues (blue/violet/amber/rose) are tints only — they never appear as a
+ * saturated fill larger than a pill, so the accent keeps its monopoly on
+ * "this is the thing to click".
+ *
+ * ── Motion ────────────────────────────────────────────────────────────────
+ * One orchestrated entrance per surface plus micro-interactions, never
+ * scattered effects. Everything animates transform/opacity only, so it runs
+ * on the compositor and never triggers layout.
+ *
+ * ! Every entrance uses `both` fill mode and NEVER sets opacity:0 in a base
+ * rule. Under prefers-reduced-motion the animations are cancelled outright,
+ * and an element whose only opacity came from a keyframe would otherwise
+ * stay permanently invisible. This has bitten this file before.
+ */
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TOKENS — and how the two themes are wired
+   ══════════════════════════════════════════════════════════════════════════
+   There are THREE states, not two, because "follow the system" is the
+   default and stamps nothing on the document:
+
+     1. no data-theme attribute  → follow prefers-color-scheme
+     2. data-theme="light"       → light, even on a dark OS
+     3. data-theme="dark"        → dark, even on a light OS
+
+   So the dark palette is declared TWICE:
+
+     @media (prefers-color-scheme: dark) { :root:not([data-theme='light']) }
+     :root[data-theme='dark']
+
+   The :not() guard is what lets an explicit light choice beat a dark OS; the
+   second block is what lets an explicit dark choice beat a light OS. Neither
+   is redundant.
+
+   The two dark blocks MUST stay identical. `npm run check:ui` parses this
+   file and fails if they drift — that is a real hazard with a list this long.
+
+   RULE: components style themselves through tokens ONLY. A colour whose only
+   definition lives inside a media query or a [data-theme] block will never
+   apply in the un-stamped state, which is the state most people are in. If
+   you need a value that differs per theme, add a token — do not add a rule
+   inside a theme block.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  color-scheme: light;
+
+  /* ground + surfaces */
+  --ground: #f6f5f2;
+  --ground-2: #f1efeb;
+  --ground-3: #e9e6e0;
+  --surface: #ffffff;
+  --surface-2: #faf9f7;
+  /* Card hairline. Invisible in light — Porcelain separates by shadow — but
+     load-bearing in dark, where a soft shadow does not read at all. */
+  --surface-line: transparent;
+  --chrome-bg: rgba(255, 255, 255, 0.82);
+  /* The logo tile stays WHITE in both themes and is deliberately NOT
+     overridden in the dark blocks. The Aeygis mark is a fixed brand asset
+     drawn in dark ink: a tile that flips with the theme makes it disappear
+     into its own background. */
+  --brand-tile-bg: #ffffff;
+  /* Resolves through --accent-press/--accent-fill, so it follows the theme
+     without needing its own entry in the dark blocks. */
+  --avatar-bg: linear-gradient(135deg, var(--accent-press), var(--accent-fill));
+
+  /* form fields */
+  --field-bg: #faf9f7;
+  --field-line: #ddd9d0;
+
+  /* the sign-in brand panel is a fixed dark surface in BOTH themes */
+  --panel-ink: #22262d;
+  --panel-ink-2: #2b3038;
+
+  /* content */
+  --ink: #1f2329;
+  --body: #545b66;
+  /* --dim is every piece of secondary text. It was #8a919c, straight from
+     the mockup, which measured 2.77:1 on the chip ground — unreadable and a
+     WCAG failure. #636870 clears 4.5:1 on all four grounds while staying
+     clearly below --body in the hierarchy. */
+  --dim: #636870;
+  /* DECORATION ONLY — a disclosure triangle, a dot. Never text: it does not
+     meet contrast, which is why placeholders use --dim instead. */
+  --faint: #a8aeb8;
+  /* Text on an --ink fill (the active section-nav pill). */
+  --on-ink: #ffffff;
+
+  --line: #ebe8e2;
+  --line-2: #ddd9d0;
+
+  /* ── the one saturated colour ────────────────────────────────────────
+     #0b8585 is the VERIFIED brand teal (the live health.aeygis.com meta
+     theme-color) and stays exactly that in light mode: borders, focus
+     rings, tints, the logo tile.
+
+     It cannot carry white text, though — white on it is 4.46:1, just under
+     WCAG AA for text this size. So SOLID FILLS use --accent-fill, a deeper
+     shade of the same hue (5.02:1). The brand colour is unchanged; what
+     changed is which shade sits behind a white label.
+
+     In dark mode the whole ladder lifts: #0b8585 on a near-black ground has
+     too little separation to read as the action colour. Same hue, brighter
+     shade — and the label flips to near-black, which is how a bright accent
+     stays legible on dark. */
+  --accent: #0b8585;
+  --accent-fill: #0a7c7c;
+  --accent-ink: #085e5e;
+  --accent-hover: #097272;
+  --accent-press: #086464;
+  --accent-bright: #43c6b8;
+  --accent-tint: #e2f2f0;
+  --on-accent: #ffffff;
+
+  /* Each hue is set against its OWN tint at >= 4.8:1 — a pill is small,
+     bold, coloured text on a coloured ground, which is the easiest place in
+     a pastel system to fall under AA without noticing. */
+  --blue: #3466b7;
+  --blue-tint: #e7eefb;
+  --violet: #6655c2;
+  --violet-tint: #edeafa;
+  --amber: #8c6010;
+  --amber-tint: #faf0da;
+  --rose: #b33c57;
+  --rose-tint: #fbe9ee;
+  --slate-tint: #f1efeb;
+
+  --danger: #b33c57;
+  --danger-ink: #9c2f4a;
+  --on-danger: #ffffff;
+
+  /* notice body text, on its matching tint */
+  --warn-ink: #6f5722;
+  --info-ink: #22504e;
+
+  /* The toast is a deliberately INVERTED surface — dark on a light UI, light
+     on a dark one — so it reads as an overlay rather than another card. */
+  --toast-bg: #1f2329;
+  --toast-fg: #ffffff;
+  --toast-fg-dim: rgba(255, 255, 255, 0.55);
+  --toast-ok: #2fbf8f;
+  --toast-ok-ink: #06301f;
+  --toast-bad: #f0748f;
+  --toast-bad-ink: #4a0f1d;
+
+  --skeleton-hi: #f8f6f2;
+
+  /* the two faint washes on the app ground */
+  --wash-a: rgba(11, 133, 133, 0.07);
+  --wash-b: rgba(232, 184, 74, 0.06);
+
+  /* radii — Porcelain is generous; nothing sharper than 9px */
+  --r-sm: 9px;
+  --r: 12px;
+  --r-md: 14px;
+  --r-lg: 18px;
+  --r-xl: 22px;
+  --r-pill: 999px;
+
+  /* shadows carry the "floating" read; borders are a last resort */
+  --shadow-xs: 0 1px 2px rgba(31, 35, 41, 0.05);
+  --shadow: 0 1px 2px rgba(31, 35, 41, 0.04), 0 12px 32px -12px rgba(31, 35, 41, 0.1);
+  --shadow-lift: 0 2px 4px rgba(31, 35, 41, 0.05), 0 22px 48px -16px rgba(31, 35, 41, 0.16);
+  --shadow-big: 0 4px 10px rgba(31, 35, 41, 0.06), 0 40px 90px -28px rgba(31, 35, 41, 0.35);
+  --shadow-raise: 0 2px 6px rgba(31, 35, 41, 0.09);
+  --shadow-hover: 0 8px 18px -8px rgba(31, 35, 41, 0.22);
+  --shadow-accent: 0 8px 20px -8px rgba(11, 133, 133, 0.55);
+  --shadow-accent-lift: 0 14px 28px -10px rgba(11, 133, 133, 0.6);
+  --shadow-danger: 0 8px 20px -8px rgba(179, 60, 87, 0.55);
+  --shadow-danger-lift: 0 14px 28px -10px rgba(179, 60, 87, 0.6);
+  --shadow-toast: 0 20px 48px -12px rgba(31, 35, 41, 0.5);
+  --shadow-selected: 0 2px 4px rgba(11, 133, 133, 0.06), 0 18px 40px -14px rgba(11, 133, 133, 0.28);
+
+  --ring: rgba(11, 133, 133, 0.12);
+  --ring-strong: rgba(11, 133, 133, 0.16);
+
+  --font-sans: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Consolas, monospace;
+
+  /* motion */
+  --ease: cubic-bezier(0.2, 0.9, 0.25, 1);
+  --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+  --d-fast: 140ms;
+  --d: 220ms;
+  --d-slow: 520ms;
+
+  --topbar-h: 58px;
+}
+
+/* ── DARK ── follow the system, unless light was explicitly chosen ──────── */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+
+    --ground: #131312;
+    --ground-2: #201f1d;
+    --ground-3: #2a2926;
+    --surface: #1b1b19;
+    --surface-2: #222220;
+    --surface-line: #2f2e2a;
+    --chrome-bg: rgba(27, 27, 25, 0.82);
+
+    --field-bg: #141413;
+    --field-line: #65625b;
+
+    --ink: #f2f1ee;
+    --body: #c3c1bb;
+    --dim: #95928c;
+    --faint: #6b6963;
+    --on-ink: #131312;
+
+    --line: #302f2c;
+    --line-2: #3d3b37;
+
+    --accent: #2fb5aa;
+    --accent-fill: #2bb3a7;
+    --accent-ink: #5fd3c6;
+    --accent-hover: #3ec4b7;
+    --accent-press: #23998f;
+    --accent-tint: #10302e;
+    --on-accent: #05231f;
+
+    --blue: #8fb6f0;
+    --blue-tint: #1b2537;
+    --violet: #b6a8f2;
+    --violet-tint: #251f3a;
+    --amber: #e0b45c;
+    --amber-tint: #2e2411;
+    --rose: #f093a6;
+    --rose-tint: #33191f;
+    --slate-tint: #262521;
+
+    --danger: #e0637d;
+    --danger-ink: #f5a6b5;
+    --on-danger: #2b0812;
+
+    --warn-ink: #e8c88a;
+    --info-ink: #9fe0d6;
+
+    --toast-bg: #f2f1ee;
+    --toast-fg: #131312;
+    --toast-fg-dim: rgba(19, 19, 18, 0.55);
+    --toast-ok: #157a56;
+    --toast-ok-ink: #ffffff;
+    --toast-bad: #a81f3b;
+    --toast-bad-ink: #ffffff;
+
+    --skeleton-hi: #2b2a27;
+
+    --wash-a: rgba(47, 181, 170, 0.07);
+    --wash-b: rgba(232, 184, 74, 0.04);
+
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.5);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.45), 0 12px 32px -12px rgba(0, 0, 0, 0.65);
+    --shadow-lift: 0 2px 4px rgba(0, 0, 0, 0.5), 0 22px 48px -16px rgba(0, 0, 0, 0.75);
+    --shadow-big: 0 4px 10px rgba(0, 0, 0, 0.5), 0 40px 90px -28px rgba(0, 0, 0, 0.85);
+    --shadow-raise: 0 2px 6px rgba(0, 0, 0, 0.5);
+    --shadow-hover: 0 8px 18px -8px rgba(0, 0, 0, 0.6);
+    --shadow-accent: 0 8px 20px -8px rgba(43, 179, 167, 0.4);
+    --shadow-accent-lift: 0 14px 28px -10px rgba(43, 179, 167, 0.45);
+    --shadow-danger: 0 8px 20px -8px rgba(224, 99, 125, 0.35);
+    --shadow-danger-lift: 0 14px 28px -10px rgba(224, 99, 125, 0.4);
+    --shadow-toast: 0 20px 48px -12px rgba(0, 0, 0, 0.8);
+    --shadow-selected: 0 2px 4px rgba(0, 0, 0, 0.5), 0 18px 40px -14px rgba(47, 181, 170, 0.22);
+
+    --ring: rgba(47, 181, 170, 0.22);
+    --ring-strong: rgba(47, 181, 170, 0.3);
+  }
+}
+
+/* ── DARK ── explicitly chosen, so it wins on a light OS too ────────────── */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --ground: #131312;
+  --ground-2: #201f1d;
+  --ground-3: #2a2926;
+  --surface: #1b1b19;
+  --surface-2: #222220;
+  --surface-line: #2f2e2a;
+  --chrome-bg: rgba(27, 27, 25, 0.82);
+
+  --field-bg: #141413;
+  --field-line: #65625b;
+
+  --ink: #f2f1ee;
+  --body: #c3c1bb;
+  --dim: #95928c;
+  --faint: #6b6963;
+  --on-ink: #131312;
+
+  --line: #302f2c;
+  --line-2: #3d3b37;
+
+  --accent: #2fb5aa;
+  --accent-fill: #2bb3a7;
+  --accent-ink: #5fd3c6;
+  --accent-hover: #3ec4b7;
+  --accent-press: #23998f;
+  --accent-tint: #10302e;
+  --on-accent: #05231f;
+
+  --blue: #8fb6f0;
+  --blue-tint: #1b2537;
+  --violet: #b6a8f2;
+  --violet-tint: #251f3a;
+  --amber: #e0b45c;
+  --amber-tint: #2e2411;
+  --rose: #f093a6;
+  --rose-tint: #33191f;
+  --slate-tint: #262521;
+
+  --danger: #e0637d;
+  --danger-ink: #f5a6b5;
+  --on-danger: #2b0812;
+
+  --warn-ink: #e8c88a;
+  --info-ink: #9fe0d6;
+
+  --toast-bg: #f2f1ee;
+  --toast-fg: #131312;
+  --toast-fg-dim: rgba(19, 19, 18, 0.55);
+  --toast-ok: #157a56;
+  --toast-ok-ink: #ffffff;
+  --toast-bad: #a81f3b;
+  --toast-bad-ink: #ffffff;
+
+  --skeleton-hi: #2b2a27;
+
+  --wash-a: rgba(47, 181, 170, 0.07);
+  --wash-b: rgba(232, 184, 74, 0.04);
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.45), 0 12px 32px -12px rgba(0, 0, 0, 0.65);
+  --shadow-lift: 0 2px 4px rgba(0, 0, 0, 0.5), 0 22px 48px -16px rgba(0, 0, 0, 0.75);
+  --shadow-big: 0 4px 10px rgba(0, 0, 0, 0.5), 0 40px 90px -28px rgba(0, 0, 0, 0.85);
+  --shadow-raise: 0 2px 6px rgba(0, 0, 0, 0.5);
+  --shadow-hover: 0 8px 18px -8px rgba(0, 0, 0, 0.6);
+  --shadow-accent: 0 8px 20px -8px rgba(43, 179, 167, 0.4);
+  --shadow-accent-lift: 0 14px 28px -10px rgba(43, 179, 167, 0.45);
+  --shadow-danger: 0 8px 20px -8px rgba(224, 99, 125, 0.35);
+  --shadow-danger-lift: 0 14px 28px -10px rgba(224, 99, 125, 0.4);
+  --shadow-toast: 0 20px 48px -12px rgba(0, 0, 0, 0.8);
+  --shadow-selected: 0 2px 4px rgba(0, 0, 0, 0.5), 0 18px 40px -14px rgba(47, 181, 170, 0.22);
+
+  --ring: rgba(47, 181, 170, 0.22);
+  --ring-strong: rgba(47, 181, 170, 0.3);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  /* color-scheme is set per theme in the token blocks above, so native
+     controls, scrollbars and form widgets follow the chosen theme. */
+  font-size: 93.75%; /* 15px root — every rem below is against this */
+}
+
+/* ── Amplify's font grab ───────────────────────────────────────────────
+   @aws-amplify/ui-react/styles.css contains:
+
+     html, [data-amplify-theme] { font-family: var(--amplify-fonts-default-static); }
+     @supports (font-variation-settings: normal) {
+       html, [data-amplify-theme] { font-family: var(--amplify-fonts-default-variable); }
+     }
+
+   ThemeProvider stamps [data-amplify-theme] on a div that wraps the WHOLE
+   console, not just the Authenticator. That div sits inside <body>, so it
+   re-imposes the auth theme's font on everything below it — and every element
+   that does not set its own font-family (h1, h2, td, dd, p...) inherited it
+   rather than --font-sans. The console rendered in a MIX: elements with an
+   explicit rule in Manrope, everything else in whatever the auth theme said.
+
+   This takes it back. Same specificity as theirs, but brand.css loads after
+   their stylesheet, so it wins. Keep it above `body` so the intent reads in
+   order: the app owns its own typeface. */
+html,
+[data-amplify-theme] {
+  font-family: var(--font-sans);
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  color: var(--body);
+  background: var(--ground);
+  font-size: 0.9rem; /* 13.5px */
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   MOTION PRIMITIVES
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.985);
+  }
+}
+
+@keyframes dropIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes riseIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.96);
+  }
+}
+
+@keyframes shimmer {
+  to {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── theme flip ────────────────────────────────────────────────────────
+   Flipping the whole palette at once is a hard snap; easing it makes the
+   change legible. But a PERMANENT global colour transition is the wrong
+   trade — it costs on every render and makes hover states feel sluggish.
+
+   So the transition exists only while `.theme-changing` is on <html>, which
+   the toggle adds for ~260ms. During that window uniform timing matters more
+   than any component's own transition, hence !important.
+
+   Guarded by `no-preference` rather than relying on the reduce block below:
+   this rule is more specific than `*`, so an !important here would otherwise
+   outrank the kill switch and reduced-motion users would still get the fade. */
+@media (prefers-reduced-motion: no-preference) {
+  html.theme-changing *,
+  html.theme-changing *::before,
+  html.theme-changing *::after {
+    transition:
+      background-color 200ms var(--ease-soft),
+      border-color 200ms var(--ease-soft),
+      color 200ms var(--ease-soft),
+      fill 200ms var(--ease-soft),
+      box-shadow 200ms var(--ease-soft) !important;
+  }
+}
+
+/* The one place motion is switched off wholesale. Because no base rule sets
+   opacity:0, cancelling every animation leaves a fully-visible, correct
+   layout rather than a blank screen. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TYPE PRIMITIVES
+   ══════════════════════════════════════════════════════════════════════════ */
+
+h1,
+h2,
+h3 {
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  font-weight: 800;
+  margin: 0;
+}
+
+h1 {
+  font-size: 1.13rem;
+}
+
+h2 {
+  font-size: 0.95rem;
+}
+
+h3 {
+  font-size: 0.9rem;
+}
+
+.muted {
+  color: var(--dim);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.tiny {
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.flush {
+  margin-top: 0;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   APP FRAME
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.app-frame {
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: var(--topbar-h) minmax(0, 1fr);
+  overflow: hidden;
+  /* Two very faint washes so the paper ground has depth without becoming a
+     gradient. */
+  background:
+    radial-gradient(38rem 22rem at 88% -6%, var(--wash-a), transparent 70%),
+    radial-gradient(34rem 20rem at 8% 104%, var(--wash-b), transparent 70%),
+    var(--ground);
+}
+
+/* ---------- top bar ---------- */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0 1.15rem;
+  background: var(--chrome-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+  animation: dropIn var(--d-slow) var(--ease) both;
+  /* Above the sticky detail header, which also carries a blurred background. */
+  position: relative;
+  z-index: 30;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.brand-tile {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r);
+  background: var(--brand-tile-bg);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-xs);
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+.brand-tile img {
+  display: block;
+  width: 19px;
+  height: 19px;
+  object-fit: contain;
+}
+
+.brand-word {
+  font-weight: 800;
+  font-size: 0.93rem;
+  color: var(--ink);
+  letter-spacing: -0.015em;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.brand-word span {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.63rem;
+  font-weight: 400;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-top: 0.12rem;
+}
+
+.topbar-spacer {
+  margin-left: auto;
+}
+
+/* Square, icon-only. Inherits the ghost button's colours and hover. */
+.theme-toggle {
+  display: grid;
+  place-items: center;
+  width: 2.15rem;
+  height: 2.15rem;
+  padding: 0;
+  flex: none;
+}
+
+.theme-toggle svg {
+  display: block;
+}
+
+/* Signed-in user, as initials.
+   The mockup's own gradient (#0b8585 -> #16a3a3) is NOT used: white initials
+   at 12px/700 measure 4.46:1 on the first stop and 3.09:1 on the second, both
+   below AA. This runs the accent ladder instead, whose lightest stop clears
+   5.02:1 with white in light mode and 6.40:1 with near-black in dark, and
+   which flips with the theme on its own.
+   Worth knowing: the contrast probe in check:ui SKIPS elements painted on a
+   background-image, so a gradient is somewhere it cannot help — this one was
+   measured by hand. */
+.avatar {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--avatar-bg);
+  color: var(--on-accent);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  box-shadow: 0 4px 10px -3px rgba(11, 133, 133, 0.5);
+  user-select: none;
+}
+
+/* ---------- user menu ----------
+   The avatar is a <button>, so the global button rules reach it. Two of them
+   have to be answered explicitly:
+     - `button` sets padding and a border, which would inflate the circle;
+     - `button:hover:not(:disabled)` (0,2,1) outranks `.avatar` (0,1,0) and
+       would swap the gradient for a flat fill on hover.
+   Hence the padding reset and the restated background below. Same class of
+   collision that once rendered the sign-in button as a text field. */
+.user-menu {
+  position: relative;
+  display: flex;
+}
+
+button.avatar {
+  padding: 0;
+  border: none;
+  cursor: pointer;
+}
+
+button.avatar:hover:not(:disabled),
+button.avatar[aria-expanded='true'] {
+  background: var(--avatar-bg);
+  border: none;
+  transform: translateY(-1px);
+  box-shadow: 0 7px 16px -4px rgba(11, 133, 133, 0.55);
+}
+
+button.avatar:active:not(:disabled) {
+  background: var(--avatar-bg);
+  transform: none;
+}
+
+.user-panel {
+  position: absolute;
+  top: calc(100% + 0.55rem);
+  right: 0;
+  z-index: 40;
+  width: 17.5rem;
+  background: var(--surface);
+  border: 1px solid var(--surface-line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lift);
+  padding: 0.95rem;
+  animation: popIn var(--d) var(--ease) both;
+}
+
+.user-id {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+/* After .avatar in the file, so the larger size wins at equal specificity. */
+.avatar-lg {
+  width: 40px;
+  height: 40px;
+  font-size: 0.88rem;
+}
+
+.user-id-text {
+  min-width: 0;
+}
+
+.user-id-text b {
+  display: block;
+  color: var(--ink);
+  font-size: 0.88rem;
+  font-weight: 800;
+  letter-spacing: -0.012em;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.user-id-text .mono {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--dim);
+  margin-top: 0.1rem;
+  overflow-wrap: anywhere;
+}
+
+.user-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin: 0.85rem 0;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--line);
+}
+
+.user-facts > div {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+
+.user-facts dt {
+  flex: none;
+  width: 4rem;
+  font-size: 0.66rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dim);
+}
+
+.user-facts dd {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.user-signout {
+  width: 100%;
+}
+
+/* ---------- the two columns ---------- */
+.layout {
+  display: grid;
+  grid-template-columns: 360px minmax(0, 1fr);
+  gap: 1.15rem;
+  padding: 1.15rem 1.15rem 0;
+  min-height: 0; /* lets the children scroll instead of stretching the row */
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   QUEUE COLUMN
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.queue-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* Room for the card shadows, which this scroll container would otherwise
+     clip. The TOP was 0, and that looked fine only for as long as the one
+     control up there was chromeless — the moment the Refresh button gained a
+     border and a shadow, its top edge was sliced off. The negative margin
+     cancels the padding, so adding the room shifts nothing. */
+  padding: 4px 4px 1.15rem;
+  margin: -4px -4px 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-2) transparent;
+}
+
+.pane-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0 0.2rem 0.7rem;
+  animation: fadeIn var(--d) var(--ease-soft) both;
+}
+
+.pane-head h1 {
+  font-size: 1.06rem;
+}
+
+/* A chip, not a floating figure.
+   As bare text between an <h1> and a button, the number read as something
+   stray rather than as the queue's total. A quiet container gives it a job.
+   Deliberately quiet — it is a label, not a control, and must not compete
+   with the Refresh button beside it. */
+.pane-head .count {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--dim);
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  background: var(--ground-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  padding: 0.22rem 0.55rem;
+  white-space: nowrap;
+  flex: none;
+}
+
+/* The noun is secondary to the figure, so it takes the body face and sheds the
+   monospace — mono on a word next to a digit looks like a typo. */
+.pane-head .count-label {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+/* ---------- filter chips ---------- */
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  padding: 0 0.1rem 0.75rem;
+  animation: fadeIn var(--d) var(--ease-soft) both 60ms;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-sans);
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--dim);
+  background: var(--ground-2);
+  border: 1px solid transparent;
+  border-radius: var(--r-pill);
+  padding: 0.26rem 0.6rem;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: none;
+  transition:
+    background var(--d) var(--ease),
+    color var(--d) var(--ease),
+    box-shadow var(--d) var(--ease),
+    transform var(--d-fast) var(--ease);
+}
+
+.chip:hover:not(:disabled) {
+  color: var(--ink);
+  background: var(--ground-3);
+  border-color: transparent;
+  transform: none;
+  box-shadow: none;
+}
+
+.chip:active:not(:disabled) {
+  transform: scale(0.97);
+  background: var(--ground-3);
+}
+
+.chip[aria-current='true'] {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-xs), var(--shadow-raise);
+}
+
+.chip[aria-current='true']:hover:not(:disabled) {
+  background: var(--surface);
+  box-shadow: var(--shadow-xs), var(--shadow-raise);
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.chip-n {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.chip[aria-current='true'] .chip-n {
+  color: var(--accent-ink);
+}
+
+/* ---------- queue cards ---------- */
+.queue-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.queue-item {
+  /* Reset the global button styling — this is a card, not a control. */
+  display: block;
+  width: 100%;
+  text-align: left;
+  font-family: var(--font-sans);
+  font-size: inherit;
+  font-weight: 400;
+  color: inherit;
+  background: var(--surface);
+  /* transparent in light — Porcelain separates by shadow — but a real
+     hairline in dark, where a soft shadow does not read. */
+  border: 1.5px solid var(--surface-line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow);
+  padding: 0.8rem 0.85rem;
+  cursor: pointer;
+  transition:
+    transform var(--d) var(--ease),
+    box-shadow var(--d) var(--ease),
+    border-color var(--d) var(--ease);
+  animation: popIn var(--d-slow) var(--ease) both;
+}
+
+.queue-list li:nth-child(1) .queue-item { animation-delay: 60ms; }
+.queue-list li:nth-child(2) .queue-item { animation-delay: 110ms; }
+.queue-list li:nth-child(3) .queue-item { animation-delay: 160ms; }
+.queue-list li:nth-child(4) .queue-item { animation-delay: 210ms; }
+.queue-list li:nth-child(5) .queue-item { animation-delay: 260ms; }
+.queue-list li:nth-child(6) .queue-item { animation-delay: 310ms; }
+.queue-list li:nth-child(n + 7) .queue-item { animation-delay: 350ms; }
+
+.queue-item:hover:not(:disabled) {
+  background: var(--surface);
+  border-color: var(--surface-line);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lift);
+}
+
+.queue-item:active:not(:disabled) {
+  background: var(--surface);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+.queue-item:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--shadow), 0 0 0 4px var(--ring-strong);
+}
+
+.queue-item[aria-current='true'],
+.queue-item[aria-current='true']:hover:not(:disabled) {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-selected);
+}
+
+.qi-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.qi-head {
+  min-width: 0;
+}
+
+.qi-name {
+  display: block;
+  font-weight: 800;
+  font-size: 0.94rem;
+  color: var(--ink);
+  letter-spacing: -0.015em;
+  line-height: 1.3;
+  /* A long clinic name wraps rather than pushing the pill off the card. */
+  overflow-wrap: anywhere;
+}
+
+.qi-ref {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--dim);
+  margin-top: 0.15rem;
+}
+
+.qi-contact {
+  display: block;
+  font-size: 0.74rem;
+  color: var(--dim);
+  margin-top: 0.1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qi-stats {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.65rem;
+}
+
+.qi-stat {
+  flex: 1;
+  min-width: 0;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 0.35rem 0.4rem;
+  text-align: center;
+}
+
+.qi-stat b {
+  display: block;
+  color: var(--ink);
+  font-size: 0.85rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.qi-stat span {
+  display: block;
+  font-size: 0.66rem;
+  color: var(--dim);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.pane-foot {
+  padding-top: 0.75rem;
+}
+
+.empty-state {
+  background: var(--surface);
+  border: 1px solid var(--surface-line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow);
+  padding: 1rem 1.05rem;
+  font-size: 0.84rem;
+  color: var(--dim);
+  animation: popIn var(--d-slow) var(--ease) both 60ms;
+}
+
+.empty-state > :first-child {
+  margin-top: 0;
+}
+
+.empty-state > :last-child {
+  margin-bottom: 0;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DETAIL COLUMN
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.detail-pane {
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 4px 1.15rem;
+  margin: 0 -4px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-2) transparent;
+}
+
+/* The hero card. Sticky so the clinic name, its status and Save stay
+   reachable through a long form — this pane scrolls a long way. */
+.detail-head {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--surface);
+  border: 1px solid var(--surface-line);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow);
+  padding: 1rem 1.15rem 0.85rem;
+  margin-bottom: 0.9rem;
+  animation: popIn var(--d-slow) var(--ease) both 40ms;
+}
+
+.detail-head .meta {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--dim);
+  margin: 0;
+}
+
+.detail-head .title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+  margin-top: 0.15rem;
+}
+
+.detail-head .title-row h1 {
+  font-size: 1.4rem;
+  letter-spacing: -0.028em;
+  overflow-wrap: anywhere;
+}
+
+.head-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+/* ---------- section nav ---------- */
+.section-nav {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 0.8rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  /* Bleed to the card edges so a scrolled-out pill fades at the boundary
+     rather than colliding with the padding. */
+  margin-inline: -1.15rem;
+  padding-inline: 1.15rem;
+}
+
+.section-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.section-nav button {
+  font-family: var(--font-sans);
+  font-size: 0.79rem;
+  font-weight: 700;
+  color: var(--dim);
+  background: transparent;
+  border: 1.5px solid transparent;
+  border-radius: var(--r-pill);
+  padding: 0.34rem 0.72rem;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: none;
+  flex: none;
+  transition:
+    color var(--d) var(--ease),
+    background var(--d) var(--ease);
+}
+
+.section-nav button:hover:not(:disabled) {
+  color: var(--ink);
+  background: var(--ground-2);
+  border-color: transparent;
+  transform: none;
+  box-shadow: none;
+}
+
+.section-nav button[aria-current='true'],
+.section-nav button[aria-current='true']:hover:not(:disabled) {
+  background: var(--ink);
+  color: var(--on-ink);
+  border-color: var(--ink);
+}
+
+.section-nav button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---------- panels ---------- */
+.detail-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding-bottom: 1rem;
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--surface-line);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow);
+  min-width: 0;
+  /* So a section-nav jump does not tuck the panel head under the sticky
+     hero card. */
+  scroll-margin-top: 9rem;
+  animation: popIn var(--d-slow) var(--ease) both;
+  transition: box-shadow var(--d) var(--ease);
+}
+
+.panel:hover {
+  box-shadow: var(--shadow-lift);
+}
+
+.detail-body > .panel:nth-child(1) { animation-delay: 80ms; }
+.detail-body > .panel:nth-child(2) { animation-delay: 120ms; }
+.detail-body > .panel:nth-child(3) { animation-delay: 160ms; }
+.detail-body > .panel:nth-child(4) { animation-delay: 200ms; }
+.detail-body > .panel:nth-child(5) { animation-delay: 240ms; }
+.detail-body > .panel:nth-child(n + 6) { animation-delay: 280ms; }
+
+.panel-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  padding: 1rem 1.15rem 0;
+}
+
+.panel-head h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.panel-head .note {
+  margin-left: auto;
+  font-size: 0.72rem;
+  color: var(--dim);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  flex: none;
+}
+
+.panel-body {
+  padding: 0.8rem 1.15rem 1.15rem;
+}
+
+.panel-body > :first-child {
+  margin-top: 0;
+}
+
+.panel-body > :last-child {
+  margin-bottom: 0;
+}
+
+/* Price-as-%-of-list and the plan filter, above the tier blocks. */
+.price-controls {
+  margin-bottom: 0.9rem;
+}
+
+/* The reason recorded with an approval decision. */
+.decision-reason {
+  margin-top: 0.9rem;
+}
+
+details.history {
+  margin-top: 0.85rem;
+}
+
+/* A heading inside a panel body, below the h2. */
+.sub-head {
+  font-size: 0.86rem;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 1.3rem 0 0.35rem;
+}
+
+/* ---------- send to client ----------
+   Sits INSIDE the approvals panel rather than in one of its own, so that it
+   reads from the same versions and decisions the table above already loaded.
+   The rule above it is what separates the two jobs visually: deciding, then
+   delivering. */
+.delivery-block {
+  margin-top: 1.1rem;
+  padding-top: 1.1rem;
+  /* --line, NOT --surface-line. The latter is `transparent` in light mode (it
+     exists to outline raised surfaces that already read as separate), so using
+     it here produced a large gap with no divider in it — the separation looked
+     like a layout bug rather than a deliberate break. */
+  border-top: 1px solid var(--line);
+}
+
+/* The heading carries its own 1.3rem top margin for use mid-panel. Directly
+   under the block's own padding-top it stacked into roughly 3.5rem of dead
+   space above "Send to client". */
+.delivery-block > .sub-head:first-child {
+  margin-top: 0;
+}
+
+/* One row per approved version: what it is on the left, the send control on
+   the right. A list rather than a table because it is usually one row, and a
+   one-row table reads as a mistake. */
+.send-list {
+  list-style: none;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.send-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--surface-line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.send-version {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+/* The send button must not shrink below its label when the row wraps on a
+   narrow pane — a clipped "Send v0003 to the client?" is the one control here
+   that has to stay readable, because it is the confirming click. */
+.send-list button {
+  flex: 0 0 auto;
+}
+
+/* The SES message id: labelled, shortened, and copyable in one click.
+   It is the only handle for tracing one specific message with AWS when a
+   client says nothing arrived, so it has to be gettable — but it is far too
+   long for a table column.
+
+   It is a <button>, so it carries `ghost` to shed the accent fill and then
+   overrides ghost's own padding, which is sized for a real control. */
+button.msg-id {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  max-width: 100%;
+  padding: 0.1rem 0.25rem;
+  margin-left: -0.25rem; /* keeps the label optically flush with the column */
+  border-radius: var(--r-sm);
+  font-size: inherit;
+  font-weight: inherit;
+  color: var(--dim);
+  cursor: copy;
+}
+
+button.msg-id:hover:not(:disabled) {
+  background: var(--ground-2);
+  color: var(--ink);
+}
+
+.msg-id-label {
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dim);
+  white-space: nowrap;
+  flex: none;
+}
+
+/* Shortened by CSS, NOT by slicing the string, so the element still holds the
+   whole id — selection and clipboard both get every character, and the
+   ellipsis is presentation only. Slicing produced text that could be neither
+   read nor copied. */
+.msg-id-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 13ch;
+  /* Set HERE rather than on button.msg-id. `button.ghost` and `button.msg-id`
+     have identical specificity (0,1,1), and ghost is declared later in this
+     file, so its font-weight:700 wins and the id renders bold — louder than
+     the data it sits beside. A class on the span has no button rule to fight. */
+  font-weight: 400;
+}
+
+/* ---------- definition grid (contact / org / posture) ---------- */
+.def-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.7rem;
+  margin: 0;
+}
+
+.def-grid > div {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 0.6rem 0.7rem;
+  min-width: 0;
+}
+
+.def-grid dt {
+  font-size: 0.67rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dim);
+  margin-bottom: 0.3rem;
+}
+
+.def-grid dd {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--ink);
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.def-grid dd .k {
+  display: inline-block;
+  min-width: 6.4rem;
+  color: var(--dim);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PILLS
+   ══════════════════════════════════════════════════════════════════════════
+   Tinted, pill-shaped, no dot. The tint IS the signal — a neutral chip with
+   a coloured dot reads as decoration; a tinted pill reads as state.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  padding: 0.22rem 0.55rem;
+  border-radius: var(--r-pill);
+  background: var(--slate-tint);
+  color: var(--body);
+  white-space: nowrap;
+  flex: none;
+}
+
+.status-new { background: var(--blue-tint); color: var(--blue); }
+.status-needs_confirmation { background: var(--amber-tint); color: var(--amber); }
+.status-in_review { background: var(--violet-tint); color: var(--violet); }
+.status-proposed { background: var(--accent-tint); color: var(--accent-ink); }
+.status-closed { background: var(--slate-tint); color: var(--dim); }
+
+.pill-approver { background: var(--accent-tint); color: var(--accent-ink); }
+.pill-contributor { background: var(--blue-tint); color: var(--blue); }
+.pill-none { background: var(--rose-tint); color: var(--rose); }
+
+/* ---------- proposal delivery outcomes ----------
+   Three states, and the middle one carries the whole point: `blocked` means the
+   system refused on purpose (an unverified recipient while SES is in the
+   sandbox), which is an expected outcome, not a fault. It takes the amber
+   "needs attention" pair rather than the rose "something is wrong" pair, so a
+   normal sandbox refusal does not read as breakage.
+
+   These reuse token pairs that existing pills already use, so their contrast in
+   both themes is already established: amber matches .status-needs_confirmation,
+   accent matches .status-proposed, rose matches .pill-none. Deliberately no NEW
+   tokens — the dark palette is declared twice and check:ui asserts the two
+   blocks are identical, so a token added here would have to be added in both. */
+.status-sent { background: var(--accent-tint); color: var(--accent-ink); }
+.status-blocked { background: var(--amber-tint); color: var(--amber); }
+.status-failed { background: var(--rose-tint); color: var(--rose); }
+
+/* ---------- status picker ----------
+   The status pill in the detail header IS the control.
+
+   A real <select> rather than a custom menu: keyboard handling, screen-reader
+   semantics and the native option list all come for free, and the option list
+   follows the theme because color-scheme is set per theme in the token blocks.
+
+   TWO cascade traps are avoided deliberately here:
+
+     1. Every rule is `select.pill-select` (0,2,1) so it outranks the global
+        `select` rule (0,0,1) AND `select:focus-visible` (0,1,1). Reusing the
+        plain `.status-*` classes would have lost to `select`, painting the
+        pill as a form field — the same collision that once rendered the
+        sign-in button as a text box.
+     2. The tints set `background-color`, never the `background` shorthand.
+        The shorthand would wipe out the chevron drawn in background-image.
+   ---------------------------------------------------------------------- */
+select.pill-select {
+  appearance: none;
+  width: auto;
+  flex: none;
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.55;
+  padding: 0.22rem 1.5rem 0.22rem 0.6rem;
+  border: 1px solid transparent;
+  border-radius: var(--r-pill);
+  background-color: var(--slate-tint);
+  color: var(--body);
+  /* currentColor, so the chevron always matches the status hue. */
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 0.8rem) center, calc(100% - 0.55rem) center;
+  background-size: 4px 4px, 4px 4px;
+  background-repeat: no-repeat;
+  cursor: pointer;
+  transition:
+    background-color var(--d) var(--ease),
+    box-shadow var(--d) var(--ease);
+}
+
+select.pill-select:hover {
+  box-shadow: var(--shadow-raise);
+}
+
+select.pill-select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+select.pill-select.status-new {
+  background-color: var(--blue-tint);
+  color: var(--blue);
+}
+
+select.pill-select.status-needs_confirmation {
+  background-color: var(--amber-tint);
+  color: var(--amber);
+}
+
+select.pill-select.status-in_review {
+  background-color: var(--violet-tint);
+  color: var(--violet);
+}
+
+select.pill-select.status-proposed {
+  background-color: var(--accent-tint);
+  color: var(--accent-ink);
+}
+
+select.pill-select.status-closed {
+  background-color: var(--slate-tint);
+  color: var(--dim);
+}
+
+/* Says the header is showing something the record does not yet hold. Without
+   it the pill silently disagrees with the queue card beside it. */
+.pending-change {
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--amber);
+  flex: none;
+}
+
+/* Available to a screen reader, invisible on screen. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* A dot for the filter chips, where the pill shape is already taken by the
+   chip itself. */
+.nav-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--dim);
+  flex: none;
+}
+
+.nav-dot.status-new { background: var(--blue); }
+.nav-dot.status-needs_confirmation { background: var(--amber); }
+.nav-dot.status-in_review { background: var(--violet); }
+.nav-dot.status-proposed { background: var(--accent); }
+.nav-dot.status-closed { background: var(--faint); }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TABLES
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.table-wrap {
+  overflow-x: auto;
+  /* A wide table scrolls INSIDE its own box. Without this the whole pane
+     scrolls sideways and the sticky hero detaches from the content. */
+  border-radius: var(--r);
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-2) transparent;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.83rem;
+}
+
+th {
+  text-align: left;
+  font-size: 0.67rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--dim);
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+td {
+  padding: 0.6rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+  color: var(--body);
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+tbody tr {
+  transition: background var(--d-fast) var(--ease-soft);
+}
+
+tbody tr:hover {
+  background: var(--surface-2);
+}
+
+.num {
+  text-align: right;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Row switched off in the responsibility matrix — dimmed, not hidden, so the
+   staff member can see what they excluded. */
+.row-off {
+  opacity: 0.45;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SKELETONS
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.skeleton-item {
+  background: var(--surface);
+  border: 1px solid var(--surface-line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow);
+  padding: 0.85rem;
+  margin-bottom: 0.55rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.skeleton-bar {
+  display: block;
+  height: 0.66rem;
+  border-radius: var(--r-pill);
+  background: linear-gradient(90deg, var(--ground-2) 25%, var(--skeleton-hi) 37%, var(--ground-2) 63%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+.skeleton-bar-sm {
+  height: 0.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-bar {
+    background: var(--ground-2);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   FORMS
+   ══════════════════════════════════════════════════════════════════════════ */
+
+label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 0.28rem;
+}
+
+.hint {
+  font-size: 0.75rem;
+  color: var(--dim);
+  margin: 0.3rem 0 0;
+  line-height: 1.55;
+}
+
+input[type='text'],
+input[type='number'],
+input[type='email'],
+input[type='password'],
+input:not([type]),
+textarea,
+select {
+  width: 100%;
+  font-family: var(--font-sans);
+  font-size: 0.86rem;
+  font-weight: 500;
+  color: var(--ink);
+  background: var(--field-bg);
+  /* Its own token, not --line: a field's boundary has to be findable, and in
+     dark mode a card hairline is nowhere near enough (WCAG 1.4.11 wants 3:1
+     for a control's boundary — the dark value clears it against the field
+     fill). */
+  border: 1.5px solid var(--field-line);
+  border-radius: var(--r);
+  padding: 0.5rem 0.7rem;
+  transition:
+    border-color var(--d) var(--ease),
+    background var(--d) var(--ease),
+    box-shadow var(--d) var(--ease);
+}
+
+input[type='number'] {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+textarea {
+  min-height: 4.4rem;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--dim);
+  font-weight: 400;
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+  background: var(--surface);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--ring);
+}
+
+input:disabled,
+textarea:disabled,
+select:disabled {
+  background: var(--ground-2);
+  color: var(--dim);
+  cursor: not-allowed;
+}
+
+select {
+  cursor: pointer;
+  appearance: none;
+  /* Chevron drawn in the box so the native control does not import platform
+     styling into a warm-white field. */
+  background-image: linear-gradient(45deg, transparent 50%, var(--dim) 50%),
+    linear-gradient(135deg, var(--dim) 50%, transparent 50%);
+  background-position: calc(100% - 1.05rem) center, calc(100% - 0.72rem) center;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 2rem;
+}
+
+input[type='checkbox'] {
+  width: 17px;
+  height: 17px;
+  flex: none;
+  accent-color: var(--accent);
+  cursor: pointer;
+  padding: 0;
+}
+
+input[type='checkbox']:disabled {
+  cursor: not-allowed;
+}
+
+.field {
+  margin-bottom: 0.7rem;
+}
+
+.field:last-child {
+  margin-bottom: 0;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: 0.7rem;
+}
+
+/* A label with its control on the same line — the "counts confirmed" tick. */
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+  font-size: 0.84rem;
+  color: var(--body);
+  margin-bottom: 0;
+  cursor: pointer;
+}
+
+.check-row input[type='checkbox'] {
+  margin: 0;
+}
+
+/* An input plus its Add button. */
+.inline-add {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.inline-add input {
+  flex: 1 1 9rem;
+  min-width: 0;
+}
+
+.inline-add button {
+  flex: none;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   BUTTONS
+   ══════════════════════════════════════════════════════════════════════════ */
+
+button {
+  font-family: var(--font-sans);
+  font-size: 0.83rem;
+  font-weight: 800;
+  color: var(--on-accent);
+  background: var(--accent-fill);
+  border: 1.5px solid var(--accent-fill);
+  border-radius: var(--r);
+  padding: 0.48rem 0.9rem;
+  cursor: pointer;
+  box-shadow: var(--shadow-accent);
+  transition:
+    background var(--d) var(--ease),
+    border-color var(--d) var(--ease),
+    color var(--d) var(--ease),
+    transform var(--d-fast) var(--ease),
+    box-shadow var(--d) var(--ease);
+}
+
+button:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-accent-lift);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(0);
+  background: var(--accent-press);
+  box-shadow: var(--shadow-xs);
+}
+
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+button.secondary {
+  background: var(--surface);
+  color: var(--body);
+  border-color: var(--line-2);
+  box-shadow: var(--shadow-xs);
+}
+
+button.secondary:hover:not(:disabled) {
+  background: var(--surface);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+  box-shadow: var(--shadow-hover);
+}
+
+button.secondary:active:not(:disabled) {
+  background: var(--ground-2);
+  color: var(--accent-ink);
+}
+
+/* A quiet control for chrome — sign out, refresh. */
+
+
+
+/* Chromeless button. The ONLY user is the theme toggle (see .theme-toggle
+   below, which inherits these colours and hover). It was also on the queue's
+   Refresh button, where it made the one control in that header read as plain
+   text rather than something clickable - that now uses `secondary` like every
+   other non-primary button.
+
+   Nearly deleted as dead CSS on the strength of a grep for `className="ghost"`,
+   which misses `className="ghost theme-toggle"`. Match on the WORD, not the
+   whole attribute. */
+button.ghost {
+  background: transparent;
+  color: var(--dim);
+  border-color: transparent;
+  box-shadow: none;
+  font-weight: 700;
+  padding: 0.4rem 0.7rem;
+}
+
+button.ghost:hover:not(:disabled) {
+  background: var(--ground-2);
+  color: var(--ink);
+  border-color: transparent;
+  transform: none;
+  box-shadow: none;
+}
+
+button.ghost:active:not(:disabled) {
+  background: var(--ground-3);
+  color: var(--ink);
+}
+
+button.danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: var(--on-danger);
+  box-shadow: var(--shadow-danger);
+}
+
+button.danger:hover:not(:disabled) {
+  background: var(--danger-ink);
+  border-color: var(--danger-ink);
+  color: var(--on-danger);
+  box-shadow: var(--shadow-danger-lift);
+}
+
+button.danger:active:not(:disabled) {
+  background: var(--danger-ink);
+}
+
+button.tiny {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.16rem 0.45rem;
+  border-radius: var(--r-sm);
+}
+
+/* Table action clusters wrap instead of forcing a horizontal scroll. */
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  justify-content: flex-end;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   NOTICES
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.notice {
+  border-radius: var(--r-md);
+  padding: 0.6rem 0.8rem;
+  font-size: 0.81rem;
+  line-height: 1.6;
+  margin-bottom: 0.7rem;
+  background: var(--slate-tint);
+  color: var(--body);
+  animation: popIn var(--d) var(--ease) both;
+}
+
+.notice:last-child {
+  margin-bottom: 0;
+}
+
+.notice-warn {
+  background: var(--amber-tint);
+  color: var(--warn-ink);
+}
+
+.notice-warn strong {
+  color: var(--amber);
+}
+
+.notice-block {
+  background: var(--rose-tint);
+  color: var(--danger-ink);
+}
+
+.notice-info {
+  background: var(--accent-tint);
+  color: var(--info-ink);
+}
+
+.notice-info strong {
+  color: var(--accent-ink);
+}
+
+.notice .mono {
+  font-size: 0.75rem;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DISCLOSURES
+   ══════════════════════════════════════════════════════════════════════════ */
+
+details summary {
+  cursor: pointer;
+  font-size: 0.81rem;
+  font-weight: 700;
+  color: var(--ink);
+  padding: 0.35rem 0.15rem;
+  border-radius: var(--r-sm);
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  transition: color var(--d) var(--ease);
+}
+
+details summary::-webkit-details-marker {
+  display: none;
+}
+
+/* The disclosure triangle, drawn so it can rotate. */
+details summary::before {
+  content: '';
+  width: 0;
+  height: 0;
+  flex: none;
+  border-left: 5px solid var(--faint);
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  transition: transform var(--d) var(--ease);
+}
+
+details[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+details summary:hover {
+  color: var(--accent-ink);
+}
+
+details summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+details summary.tiny {
+  font-weight: 700;
+  color: var(--dim);
+}
+
+details summary.tiny:hover {
+  color: var(--accent-ink);
+}
+
+/* A discovery category. Bordered so its questions read as belonging to it
+   rather than floating in the panel. */
+.disco-group {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 0.35rem 0.7rem;
+  margin-bottom: 0.45rem;
+  background: var(--surface-2);
+  transition:
+    border-color var(--d) var(--ease),
+    background var(--d) var(--ease);
+}
+
+.disco-group[open] {
+  background: var(--surface);
+  border-color: var(--line-2);
+  padding-bottom: 0.7rem;
+}
+
+.disco-group > summary {
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.disco-count {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.disco-body {
+  padding-top: 0.55rem;
+}
+
+/* The question label carries an inline remove control, so it is a row. */
+.q-label {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.q-label span {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PRICING
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.price-block {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 0.75rem 0.85rem;
+  margin-bottom: 0.7rem;
+  background: var(--surface-2);
+}
+
+.price-block:last-child {
+  margin-bottom: 0;
+}
+
+.price-block > h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.35rem;
+}
+
+.price-setup {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  font-weight: 400;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.price-breakdown {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--dim);
+  margin: 0 0 0.5rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.6;
+}
+
+.price-block .table-wrap {
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TOAST
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.toast-dock {
+  position: fixed;
+  right: 1.3rem;
+  bottom: 1.3rem;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-end;
+  /* The dock must never eat clicks on the app behind it. */
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: var(--toast-bg);
+  color: var(--toast-fg);
+  border-radius: var(--r-md);
+  padding: 0.6rem 0.9rem;
+  font-size: 0.83rem;
+  font-weight: 700;
+  box-shadow: var(--shadow-toast);
+  animation: toastIn var(--d-slow) var(--ease) both;
+  pointer-events: auto;
+  max-width: min(26rem, calc(100vw - 2.6rem));
+}
+
+.toast-mark {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 0.68rem;
+  font-weight: 800;
+  flex: none;
+  background: var(--toast-ok);
+  color: var(--toast-ok-ink);
+}
+
+.toast-bad .toast-mark {
+  background: var(--toast-bad);
+  color: var(--toast-bad-ink);
+}
+
+.toast-close {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--toast-fg-dim);
+  padding: 0 0 0 0.2rem;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1;
+  margin-left: 0.2rem;
+}
+
+.toast-close:hover:not(:disabled) {
+  background: transparent;
+  border-color: transparent;
+  color: var(--toast-fg);
+  transform: none;
+  box-shadow: none;
+}
+
+/* A small inline spinner for in-flight buttons. */
+.spinner {
+  display: inline-block;
+  width: 0.72rem;
+  height: 0.72rem;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  animation: spin 620ms linear infinite;
+  vertical-align: -1px;
+  margin-right: 0.4rem;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 1280px) {
+  .layout {
+    grid-template-columns: 312px minmax(0, 1fr);
+  }
+}
+
+/* Below this the app frame stops being a frame: it becomes a normal stacked
+   document that scrolls as one page. useSectionNav already handles both
+   cases — it falls back to document.scrollingElement when the detail pane is
+   no longer the scroller. */
+@media (max-width: 900px) {
+  .app-frame {
+    height: auto;
+    min-height: 100dvh;
+    display: block;
+    overflow: visible;
+  }
+
+  .topbar {
+    position: sticky;
+    top: 0;
+    height: var(--topbar-h);
+  }
+
+  .layout {
+    display: block;
+    padding: 0.9rem;
+  }
+
+  .queue-pane,
+  .detail-pane {
+    overflow: visible;
+    margin: 0;
+    padding: 0;
+  }
+
+  .queue-pane {
+    margin-bottom: 1.1rem;
+  }
+
+  /* Two stacked sticky headers would eat half a phone screen. */
+  .detail-head {
+    position: static;
+  }
+
+  .panel {
+    scroll-margin-top: 4.5rem;
+  }
+}
+
+@media (max-width: 620px) {
+  .topbar {
+    gap: 0.5rem;
+    padding: 0 0.75rem;
+  }
+
+  .detail-head .title-row h1 {
+    font-size: 1.18rem;
+  }
+
+  .head-actions {
+    margin-left: 0;
+  }
+
+  .panel-head,
+  .panel-body {
+    padding-left: 0.9rem;
+    padding-right: 0.9rem;
+  }
+
+  .section-nav {
+    margin-inline: -0.9rem;
+    padding-inline: 0.9rem;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SIGN-IN
+   ══════════════════════════════════════════════════════════════════════════
+   Porcelain's split composition. Where a gradient direction would bleed
+   colour to the page edge, Porcelain FLOATS: the brand panel is one large
+   ink card hovering on the warm ground with a big soft shadow, and the form
+   is a white card beside it.
+
+   The panel image is bundled locally (src/assets/auth-panel.jpg) and passed
+   in as --auth-panel-image rather than hot-linked — an internal console must
+   not depend on a third-party CDN being reachable to render its own front
+   door. The ink gradient underneath is a real fallback, not decoration: if
+   the image ever fails to decode, the panel still reads correctly.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.auth-shell {
+  height: 100dvh;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 54%) minmax(0, 46%);
+  background: var(--ground);
+  position: relative;
+}
+
+/* Soft ground blobs, behind everything, never interactive. */
+.auth-shell::before,
+.auth-shell::after {
+  content: '';
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(100px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.auth-shell::before {
+  width: 34rem;
+  height: 34rem;
+  background: var(--wash-a);
+  top: -12rem;
+  right: -9rem;
+}
+
+.auth-shell::after {
+  width: 29rem;
+  height: 29rem;
+  background: var(--wash-b);
+  bottom: -13rem;
+  left: 30%;
+}
+
+.auth-brandwrap {
+  padding: 1.4rem 0 1.4rem 1.4rem;
+  display: grid;
+  min-height: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.auth-brand {
+  border-radius: var(--r-xl);
+  padding: 2.3rem 2.6rem;
+  color: #c9cfd8;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-big);
+  animation: popIn 620ms var(--ease) both 50ms;
+  /* Layered: legibility overlay on top, the photo in the middle, and the ink
+     gradient underneath so the panel survives the image not loading. */
+  background-color: var(--panel-ink);
+  background-image:
+    linear-gradient(
+      178deg,
+      rgba(20, 24, 30, 0.55) 0%,
+      rgba(20, 24, 30, 0.3) 40%,
+      rgba(13, 26, 28, 0.82) 76%,
+      rgba(10, 22, 24, 0.95) 100%
+    ),
+    var(--auth-panel-image, none),
+    linear-gradient(165deg, var(--panel-ink), var(--panel-ink-2));
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Interior glow — Porcelain pastels. */
+.auth-brand::before,
+.auth-brand::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  pointer-events: none;
+}
+
+.auth-brand::before {
+  width: 30rem;
+  height: 30rem;
+  background: rgba(67, 198, 184, 0.13);
+  right: -10rem;
+  top: -10rem;
+}
+
+.auth-brand::after {
+  width: 24rem;
+  height: 24rem;
+  background: rgba(109, 91, 208, 0.1);
+  left: -7.5rem;
+  bottom: -9rem;
+}
+
+.auth-lockup {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  position: relative;
+  z-index: 1;
+}
+
+.auth-lockup .brand-tile {
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  background: var(--brand-tile-bg);
+  border: none;
+  box-shadow: 0 10px 24px -6px rgba(0, 0, 0, 0.45);
+}
+
+.auth-lockup .brand-tile img {
+  width: 24px;
+  height: 24px;
+}
+
+.auth-lockup-word {
+  font-size: 1.03rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+
+.auth-lockup-word span {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 400;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: rgba(201, 207, 216, 0.72);
+  margin-top: 0.14rem;
+}
+
+.auth-hero {
+  margin-top: auto;
+  max-width: 27rem;
+  position: relative;
+  z-index: 1;
+}
+
+.auth-hero h1 {
+  font-size: 1.95rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.22;
+  letter-spacing: -0.028em;
+  animation: riseIn 620ms var(--ease) both 220ms;
+}
+
+.auth-hero h1 em {
+  font-style: normal;
+  color: var(--accent-bright);
+}
+
+.auth-hero p {
+  margin: 0.7rem 0 0;
+  font-size: 0.88rem;
+  color: #9aa2ae;
+  line-height: 1.65;
+  animation: riseIn 620ms var(--ease) both 320ms;
+}
+
+/* ---------- form side ---------- */
+.auth-formside {
+  display: grid;
+  place-items: center;
+  padding: 1.6rem;
+  min-height: 0;
+  overflow-y: auto;
+  position: relative;
+  z-index: 1;
+}
+
+/* Top-right of the form column. Absolute, so it does not disturb the grid
+   that centres the card. .auth-formside is already position: relative. */
+.auth-toggle {
+  position: absolute;
+  top: 1.2rem;
+  right: 1.3rem;
+  z-index: 2;
+}
+
+.auth-card {
+  width: min(25rem, 100%);
+  background: var(--surface);
+  border: 1px solid var(--surface-line);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow);
+  padding: 1.5rem 1.6rem 1.3rem;
+  animation: popIn var(--d-slow) var(--ease) both 180ms;
+}
+
+.auth-card h2 {
+  font-size: 1.28rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+.auth-card .sub {
+  font-size: 0.84rem;
+  color: var(--dim);
+  margin: 0.25rem 0 0.9rem;
+}
+
+.auth-footnote {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.63rem;
+  letter-spacing: 0.05em;
+  color: var(--dim);
+  margin: 1rem 0 0;
+  animation: fadeIn var(--d-slow) var(--ease-soft) both 400ms;
+}
+
+@media (max-width: 940px) {
+  /* The brand panel is atmosphere, not information — below this width the
+     form needs the whole screen more than the panel needs to exist. */
+  .auth-shell {
+    grid-template-columns: minmax(0, 1fr);
+    height: auto;
+    min-height: 100dvh;
+    overflow: auto;
+  }
+
+  .auth-brandwrap {
+    display: none;
+  }
+
+  .auth-formside {
+    padding: 2rem 1.2rem;
+    overflow: visible;
+  }
+}
+
+/* ---------- Amplify Authenticator theming ----------
+   The Authenticator renders the real sign-in form, including the
+   forgot-password and reset flows, so it is styled in place inside the white
+   card rather than replaced by a hand-rolled form that would only cover the
+   happy path.
+
+   CSS custom properties confirmed against the Amplify UI docs (every design
+   token is exposed as an --amplify-* variable, and every component class is
+   prefixed `amplify-`). Font family and radii come from the ThemeProvider
+   theme in authTheme.ts, since those are theme tokens rather than CSS vars
+   in the documented API. */
+
+[data-amplify-authenticator] {
+  width: 100%;
+  --amplify-components-authenticator-router-box-shadow: none;
+  --amplify-components-authenticator-router-border-width: 0;
+  --amplify-components-authenticator-form-padding: 0.2rem 0 0;
+  /* Amplify paints its own light-mode defaults for text, surfaces and
+     borders. Mapping them onto our tokens is what makes the sign-in form
+     follow the theme instead of staying stubbornly light. */
+  --amplify-colors-font-primary: var(--ink);
+  --amplify-colors-font-secondary: var(--body);
+  --amplify-colors-font-tertiary: var(--dim);
+  --amplify-colors-background-primary: var(--surface);
+  --amplify-colors-background-secondary: var(--surface-2);
+  --amplify-colors-border-primary: var(--line);
+  --amplify-colors-border-secondary: var(--line-2);
+  --amplify-components-fieldcontrol-color: var(--ink);
+  --amplify-components-fieldcontrol-border-color: var(--field-line);
+  --amplify-components-fieldcontrol-focus-border-color: var(--accent);
+  --amplify-components-fieldcontrol-focus-box-shadow: 0 0 0 4px var(--ring);
+  --amplify-components-button-primary-background-color: var(--accent-fill);
+  /* The LABEL, not just the fill. Amplify's default is white, which is 2.59:1
+     on the dark theme's brighter accent — a real AA failure that only shows
+     up in dark mode. --on-accent flips with the theme. */
+  --amplify-components-button-primary-color: var(--on-accent);
+  --amplify-components-button-primary-hover-color: var(--on-accent);
+  --amplify-components-button-primary-focus-color: var(--on-accent);
+  --amplify-components-button-primary-active-color: var(--on-accent);
+  --amplify-components-button-primary-loading-color: var(--on-accent);
+  --amplify-components-button-primary-disabled-background-color: var(--accent-fill);
+  --amplify-components-button-primary-disabled-color: var(--on-accent);
+  --amplify-components-button-primary-hover-background-color: var(--accent-hover);
+  --amplify-components-button-primary-focus-background-color: var(--accent-hover);
+  --amplify-components-button-primary-active-background-color: var(--accent-press);
+  --amplify-components-button-link-color: var(--accent-ink);
+  --amplify-components-button-link-hover-color: var(--accent);
+  --amplify-components-button-link-focus-color: var(--accent);
+  --amplify-components-button-link-active-color: var(--accent-press);
+  --amplify-components-button-link-hover-background-color: transparent;
+  --amplify-components-button-link-focus-background-color: transparent;
+  --amplify-components-fieldmessages-error-color: var(--danger-ink);
+}
+
+/* Amplify's container carries its own 30rem max width and the router its own
+   card chrome. Both are neutralised on the real elements — the card around
+   it is ours. */
+[data-amplify-authenticator] [data-amplify-container] {
+  width: 100%;
+  max-width: none;
+}
+
+[data-amplify-authenticator] [data-amplify-router] {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+[data-amplify-authenticator] .amplify-label {
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* .amplify-input ONLY. The submit button also carries
+   .amplify-field-group__control, so including that class here painted the
+   primary action as a white text field — a (0,2,0) selector quietly beating
+   .amplify-button--primary at (0,1,0). The show/hide toggle, which does want
+   field styling, is handled by its own rule below. */
+[data-amplify-authenticator] .amplify-input {
+  font-family: var(--font-sans);
+  font-size: 0.86rem;
+  font-weight: 500;
+  color: var(--ink);
+  background: var(--field-bg);
+  border-width: 1.5px;
+  border-radius: var(--r);
+  padding: 0.5rem 0.7rem;
+}
+
+[data-amplify-authenticator] .amplify-input:focus {
+  background: var(--surface);
+}
+
+/* The show/hide-password button sits in a field group; its corners have to
+   follow the field's, or a square edge pokes out of the rounded box. */
+[data-amplify-authenticator] .amplify-field-group__outer-end .amplify-field-group__control {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  background: var(--field-bg);
+  color: var(--dim);
+}
+
+[data-amplify-authenticator] .amplify-field-group__outer-end .amplify-field-group__control:hover {
+  background: var(--ground-2);
+  color: var(--ink);
+}
+
+[data-amplify-authenticator] .amplify-button--primary {
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-size: 0.88rem;
+  border-radius: var(--r);
+  padding: 0.62rem 1rem;
+  box-shadow: var(--shadow-accent);
+  transition:
+    background var(--d) var(--ease),
+    transform var(--d-fast) var(--ease),
+    box-shadow var(--d) var(--ease);
+}
+
+[data-amplify-authenticator] .amplify-button--primary:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-accent-lift);
+}
+
+[data-amplify-authenticator] .amplify-button--link {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 0.78rem;
+  padding: 0.2rem 0.3rem;
+}
+
+.auth-card-footer {
+  padding-top: 0.6rem;
+  margin-top: 0.7rem;
+  border-top: 1px solid var(--line);
+  text-align: center;
+}

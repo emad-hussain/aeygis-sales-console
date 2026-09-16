@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Nocturne — login</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* NOCTURNE login — the aurora ground carries the whole page; one glass card. */
+  :root {
+    --bg: #0a0d13;
+    --panel: rgba(255,255,255,.045);
+    --line: rgba(255,255,255,.09);
+    --line-2: rgba(255,255,255,.16);
+    --ink: #e8ecf3;
+    --body: #aab3c2;
+    --dim: #6b7484;
+    --accent: #2dd4bf;
+    --accent-glow: rgba(45,212,191,.35);
+    --font: 'Inter', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+    --ease: cubic-bezier(.16,1,.3,1);
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: var(--font); font-size: 14px; color: var(--body);
+    background: var(--bg); overflow: hidden;
+    display: grid; place-items: center;
+  }
+  .aurora { position: fixed; inset: 0; pointer-events: none; }
+  .aurora::before, .aurora::after {
+    content: ''; position: absolute; width: 760px; height: 760px; border-radius: 50%;
+    filter: blur(130px);
+  }
+  .aurora::before { background: #14b8a6; opacity: .17; top: -300px; right: -140px; animation: d1 24s var(--ease) infinite alternate; }
+  .aurora::after  { background: #4f46e5; opacity: .12; bottom: -360px; left: -160px; animation: d2 30s var(--ease) infinite alternate; }
+  @keyframes d1 { to { transform: translate(-70px, 60px); } }
+  @keyframes d2 { to { transform: translate(90px, -50px); } }
+  /* faint grid — the tooling feel */
+  .grid-lines {
+    position: fixed; inset: 0; pointer-events: none; opacity: .5;
+    background-image:
+      linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+    background-size: 44px 44px;
+    mask-image: radial-gradient(ellipse 60% 55% at 50% 45%, #000 30%, transparent 75%);
+  }
+
+  .card {
+    position: relative; width: 396px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 18px;
+    padding: 34px 34px 28px; backdrop-filter: blur(14px);
+    box-shadow: 0 30px 80px -30px rgba(0,0,0,.7);
+    animation: rise .6s var(--ease) both .1s;
+  }
+  @keyframes rise { from { opacity: 0; transform: translateY(16px) scale(.985); } }
+
+  .lockup { display: flex; align-items: center; gap: 12px; margin-bottom: 26px; }
+  .mark {
+    width: 40px; height: 40px; border-radius: 12px;
+    background: linear-gradient(135deg, #14b8a6, #0d9488);
+    box-shadow: 0 0 28px var(--accent-glow);
+    display: grid; place-items: center; color: #04211d; font-weight: 700; font-size: 20px;
+  }
+  .lockup b { color: var(--ink); font-size: 17px; font-weight: 600; letter-spacing: -.01em; display: block; }
+  .lockup span { color: var(--dim); font-size: 12px; }
+
+  h1 { color: var(--ink); font-size: 19px; font-weight: 600; letter-spacing: -.015em; margin-bottom: 4px; }
+  .sub { font-size: 13px; color: var(--dim); margin-bottom: 24px; }
+
+  .field { margin-bottom: 14px; animation: rise .55s var(--ease) both; }
+  .field:nth-of-type(1) { animation-delay: .2s; } .field:nth-of-type(2) { animation-delay: .27s; }
+  label { display: block; font-size: 12px; font-weight: 500; color: var(--body); margin-bottom: 6px; }
+  .input {
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(0,0,0,.28); border: 1px solid var(--line); border-radius: 10px;
+    padding: 11px 13px; transition: border-color .18s, box-shadow .18s;
+  }
+  .input input {
+    all: unset; flex: 1; color: var(--ink); font-family: var(--font); font-size: 13.5px;
+  }
+  .input input::placeholder { color: var(--dim); }
+  .input.focus {
+    border-color: rgba(45,212,191,.55);
+    box-shadow: 0 0 0 3px rgba(45,212,191,.14), 0 0 24px -8px var(--accent-glow);
+  }
+  .input .icon { color: var(--dim); font-size: 13px; }
+
+  .row { display: flex; align-items: center; justify-content: space-between; margin: 4px 0 20px; animation: rise .55s var(--ease) both .33s; }
+  .row a { color: var(--accent); font-size: 12.5px; text-decoration: none; }
+  .row a:hover { text-decoration: underline; }
+  .remember { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--dim); }
+  .box { width: 15px; height: 15px; border-radius: 4px; border: 1px solid var(--line-2); background: rgba(45,212,191,.18); position: relative; }
+  .box::after { content: '✓'; position: absolute; inset: 0; display: grid; place-items: center; font-size: 10px; color: var(--accent); }
+
+  .btn {
+    width: 100%; font-family: var(--font); font-size: 14px; font-weight: 600;
+    padding: 12px; border: none; border-radius: 10px; cursor: pointer;
+    background: linear-gradient(135deg, #14b8a6, #0d9488); color: #03211d;
+    box-shadow: 0 8px 26px -8px var(--accent-glow);
+    transition: transform .16s var(--ease), box-shadow .16s;
+    animation: rise .55s var(--ease) both .38s;
+  }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 12px 32px -8px var(--accent-glow); }
+
+  .foot {
+    margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line);
+    font-size: 11.5px; color: var(--dim); text-align: center;
+    animation: rise .55s var(--ease) both .45s;
+  }
+  .foot .mono { font-family: var(--mono); font-size: 10.5px; }
+  .status {
+    position: fixed; bottom: 20px; left: 0; right: 0; display: flex; justify-content: center;
+    font-family: var(--mono); font-size: 10.5px; color: var(--dim); gap: 8px; align-items: center;
+  }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse 1.8s ease infinite; }
+  @keyframes pulse { 50% { opacity: .3; } }
+
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="aurora"></div>
+<div class="grid-lines"></div>
+
+<div class="card">
+  <div class="lockup">
+    <div class="mark">a</div>
+    <div><b>aeygis</b><span>Sales console</span></div>
+  </div>
+
+  <h1>Welcome back</h1>
+  <p class="sub">Sign in with your staff account to continue.</p>
+
+  <div class="field">
+    <label>Email</label>
+    <div class="input"><span class="icon">✉</span><input value="s.chen@aeygis.com"></div>
+  </div>
+  <div class="field">
+    <label>Password</label>
+    <div class="input focus"><span class="icon">🔒</span><input type="password" value="••••••••••••"><span class="icon" style="color:var(--body)">👁</span></div>
+  </div>
+
+  <div class="row">
+    <span class="remember"><span class="box"></span>Remember this device</span>
+    <a href="#">Forgot password?</a>
+  </div>
+
+  <button class="btn">Sign in →</button>
+
+</div>
+
+<div class="status"><span class="dot"></span>ca-central-1 · Cognito · encrypted in transit</div>
+</body>
+</html>

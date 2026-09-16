@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="en" data-theme-capable>
+<head>
+<meta charset="utf-8">
+<title>Slate & Gold — colour study</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* ═══════════════════════════════════════════════════════════════════════
+     COLOUR STUDY: Slate & Gold — deck-tied, quietly fancy
+     The layout below is the SHIPPED Porcelain console, condensed. All six
+     studies are stamped from one template; only the token blocks differ, so
+     what you are comparing is colour and nothing else.
+     Every pair rendered here cleared WCAG AA in check_palettes.py before
+     this file was generated.
+     ═══════════════════════════════════════════════════════════════════════ */
+  :root {
+  --ground: #f7f5ef;
+  --ground-2: #f1ede2;
+  --surface: #ffffff;
+  --surface-2: #fbf9f3;
+  --ink: #23201a;
+  --body: #57534a;
+  --dim: #655f52;
+  --line: #ebe6d8;
+  --line-2: #dcd5c2;
+  --accent: #0b8585;
+  --accent-fill: #0a7c7c;
+  --accent-hover: #097272;
+  --on-accent: #ffffff;
+  --accent-tint: #e2f2ef;
+  --accent-ink: #085e5e;
+  --avatar-a: #086464;
+  --avatar-b: #0a7c7c;
+  --wash-a: rgba(11,133,133,.06);
+  --wash-b: rgba(217,168,49,.08);
+  --nav-bg: #23201a;
+  --nav-fg: #ffffff;
+  --toast-bg: #23201a;
+  --toast-fg: #ffffff;
+  --chrome-bg: rgba(255,255,255,.82);
+  --hero-edge: #d9a831;
+  --p-blue: #3466b7;
+  --p-blue-t: #e7eefb;
+  --p-violet: #6655c2;
+  --p-violet-t: #edeafa;
+  --p-amber: #8c6010;
+  --p-amber-t: #faf0da;
+  --p-rose: #b33c57;
+  --p-rose-t: #fbe9ee;
+  --shadow: 0 1px 2px rgba(31,35,41,.04), 0 12px 32px -12px rgba(31,35,41,.10);
+  --shadow-lift: 0 2px 4px rgba(31,35,41,.05), 0 22px 48px -16px rgba(31,35,41,.16);
+  }
+  :root[data-theme="dark"] {
+  --ground: #141210;
+  --ground-2: #201d18;
+  --surface: #1b1815;
+  --surface-2: #221f1a;
+  --ink: #f2f0ea;
+  --body: #c8c3b7;
+  --dim: #9a9486;
+  --line: #322e26;
+  --line-2: #423d32;
+  --accent: #2fb5aa;
+  --accent-fill: #2bb3a7;
+  --accent-hover: #3ec4b7;
+  --on-accent: #05231f;
+  --accent-tint: #10302c;
+  --accent-ink: #5fd3c6;
+  --avatar-a: #23998f;
+  --avatar-b: #2bb3a7;
+  --wash-a: rgba(47,181,170,.06);
+  --wash-b: rgba(224,180,92,.05);
+  --nav-bg: #f2f0ea;
+  --nav-fg: #141210;
+  --toast-bg: #f2f0ea;
+  --toast-fg: #141210;
+  --chrome-bg: rgba(27,24,21,.82);
+  --hero-edge: #e0b45c;
+  --p-blue: #8fb6f0;
+  --p-blue-t: #1b2537;
+  --p-violet: #b6a8f2;
+  --p-violet-t: #251f3a;
+  --p-amber: #e0b45c;
+  --p-amber-t: #2e2411;
+  --p-rose: #f093a6;
+  --p-rose-t: #33191f;
+  --shadow: 0 1px 2px rgba(0,0,0,.45), 0 12px 32px -12px rgba(0,0,0,.65);
+  --shadow-lift: 0 2px 4px rgba(0,0,0,.5), 0 22px 48px -16px rgba(0,0,0,.75);
+  }
+
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Manrope', system-ui, sans-serif; font-size: 13.5px; line-height: 1.55;
+    color: var(--body); overflow: hidden;
+    display: grid; grid-template-rows: 58px minmax(0, 1fr);
+    background:
+      radial-gradient(38rem 22rem at 88% -6%, var(--wash-a), transparent 70%),
+      radial-gradient(34rem 20rem at 8% 104%, var(--wash-b), transparent 70%),
+      var(--ground);
+    transition: background .2s ease, color .2s ease;
+  }
+  .mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: .78rem; }
+
+  /* ── top bar ── */
+  .topbar {
+    display: flex; align-items: center; gap: .9rem; padding: 0 1.15rem;
+    background: var(--chrome-bg); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line); position: relative; z-index: 30;
+  }
+  .brand { display: flex; align-items: center; gap: .6rem; }
+  .tile {
+    width: 32px; height: 32px; border-radius: 12px; background: #fff;
+    border: 1px solid var(--line); display: grid; place-items: center;
+    font-weight: 800; font-size: 17px; color: #1f2329;
+  }
+  .word { font-weight: 800; font-size: .93rem; color: var(--ink); line-height: 1.15; }
+  .word span {
+    display: block; font-family: 'IBM Plex Mono', monospace; font-size: .6rem; font-weight: 400;
+    letter-spacing: .09em; text-transform: uppercase; color: var(--dim); margin-top: .12rem;
+  }
+  .badge {
+    font-family: 'IBM Plex Mono', monospace; font-size: .66rem; color: var(--dim);
+    border: 1px solid var(--line-2); border-radius: 999px; padding: .2rem .6rem;
+  }
+  .spacer { margin-left: auto; }
+  .ghost {
+    font-family: inherit; font-size: .8rem; font-weight: 700; color: var(--dim);
+    background: transparent; border: none; border-radius: 12px; padding: .4rem .7rem; cursor: pointer;
+  }
+  .ghost:hover { background: var(--ground-2); color: var(--ink); }
+  .avatar {
+    width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
+    background: linear-gradient(135deg, var(--avatar-a), var(--avatar-b));
+    color: var(--on-accent); font-size: .76rem; font-weight: 800; letter-spacing: .02em;
+  }
+
+  /* ── two columns ── */
+  .layout {
+    display: grid; grid-template-columns: 360px minmax(0, 1fr);
+    gap: 1.15rem; padding: 1.15rem 1.15rem 0; min-height: 0;
+  }
+  .queue { min-height: 0; overflow: hidden auto; padding: 0 4px 1.15rem; margin: 0 -4px; }
+  .q-head { display: flex; align-items: center; gap: .6rem; padding: 0 .2rem .7rem; }
+  .q-head h1 { font-size: 1.06rem; font-weight: 800; color: var(--ink); letter-spacing: -.02em; }
+  .count { margin-left: auto; font-family: 'IBM Plex Mono', monospace; font-size: .72rem; color: var(--dim); }
+
+  .chips { display: flex; gap: .3rem; padding: 0 .1rem .75rem; }
+  .chip {
+    display: inline-flex; align-items: center; gap: .35rem;
+    font-size: .74rem; font-weight: 700; color: var(--dim);
+    background: var(--ground-2); border-radius: 999px; padding: .26rem .6rem; cursor: pointer;
+  }
+  .chip.on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+  .chip .n { font-family: 'IBM Plex Mono', monospace; font-size: .7rem; font-weight: 500; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; }
+
+  .card {
+    background: var(--surface); border: 1.5px solid transparent; border-radius: 18px;
+    box-shadow: var(--shadow); padding: .8rem .85rem; margin-bottom: .55rem; cursor: pointer;
+    transition: transform .2s cubic-bezier(.2,.9,.25,1), box-shadow .2s;
+  }
+  .card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lift); }
+  .card.sel { border-color: var(--accent); }
+  .c-top { display: flex; justify-content: space-between; align-items: flex-start; gap: .6rem; }
+  .c-name { font-weight: 800; font-size: .94rem; color: var(--ink); letter-spacing: -.015em; }
+  .c-ref { font-family: 'IBM Plex Mono', monospace; font-size: .68rem; color: var(--dim); margin-top: .15rem; }
+  .c-who { font-size: .74rem; color: var(--dim); margin-top: .1rem; }
+  .stats { display: flex; gap: .4rem; margin-top: .65rem; }
+  .stat {
+    flex: 1; background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: 9px; padding: .35rem .4rem; text-align: center;
+  }
+  .stat b { display: block; color: var(--ink); font-size: .85rem; font-weight: 800; }
+  .stat span {
+    display: block; font-size: .66rem; color: var(--dim); font-weight: 700;
+    text-transform: uppercase; letter-spacing: .05em;
+  }
+
+  .pill {
+    display: inline-flex; font-size: .7rem; font-weight: 800; letter-spacing: .02em;
+    padding: .22rem .55rem; border-radius: 999px; white-space: nowrap; flex: none;
+  }
+  .p-new { background: var(--p-blue-t); color: var(--p-blue); }
+  .p-review { background: var(--p-violet-t); color: var(--p-violet); }
+  .p-confirm { background: var(--p-amber-t); color: var(--p-amber); }
+  .p-ok { background: var(--accent-tint); color: var(--accent-ink); }
+  .dot.b { background: var(--p-blue); } .dot.v { background: var(--p-violet); }
+
+  /* ── detail ── */
+  .detail { min-height: 0; overflow: hidden auto; padding: 0 4px 1.15rem; margin: 0 -4px; }
+  .hero {
+    background: var(--surface); border-radius: 22px; box-shadow: var(--shadow);
+    border-top: 3px solid var(--hero-edge);
+    padding: 1rem 1.15rem .85rem; margin-bottom: .9rem;
+  }
+  .meta { font-family: 'IBM Plex Mono', monospace; font-size: .7rem; color: var(--dim); }
+  .t-row { display: flex; align-items: center; gap: .7rem; flex-wrap: wrap; margin-top: .15rem; }
+  .t-row h2 { font-size: 1.4rem; font-weight: 800; color: var(--ink); letter-spacing: -.028em; }
+  .sel-pill {
+    display: inline-flex; align-items: center; gap: .45rem;
+    font-size: .7rem; font-weight: 800; padding: .22rem .6rem; border-radius: 999px;
+    background: var(--p-violet-t); color: var(--p-violet); cursor: pointer;
+  }
+  .sel-pill::after { content: '▾'; font-size: .6rem; }
+  .btn {
+    font-family: inherit; font-size: .83rem; font-weight: 800; padding: .48rem .9rem;
+    border: none; border-radius: 12px; cursor: pointer;
+    background: var(--accent-fill); color: var(--on-accent);
+    box-shadow: 0 8px 20px -8px var(--accent-fill);
+    transition: transform .14s, background .2s;
+  }
+  .btn:hover { background: var(--accent-hover); transform: translateY(-1px); }
+  .btn.sm { font-size: .74rem; padding: .3rem .65rem; border-radius: 9px; }
+  .btn.line {
+    background: var(--surface); color: var(--body); box-shadow: none;
+    border: 1.5px solid var(--line-2);
+  }
+  .btn.line:hover { background: var(--surface); color: var(--accent-ink); border-color: var(--accent); }
+  .push { margin-left: auto; display: flex; gap: .45rem; }
+
+  .nav { display: flex; gap: .25rem; margin-top: .8rem; overflow-x: auto; }
+  .nav a {
+    font-size: .79rem; font-weight: 700; color: var(--dim); text-decoration: none;
+    padding: .34rem .72rem; border-radius: 999px; white-space: nowrap;
+  }
+  .nav a:hover { color: var(--ink); background: var(--ground-2); }
+  .nav a.on { background: var(--nav-bg); color: var(--nav-fg); }
+
+  .panel {
+    background: var(--surface); border-radius: 22px; box-shadow: var(--shadow);
+    margin-bottom: .9rem;
+  }
+  .p-head { display: flex; align-items: baseline; gap: .6rem; padding: 1rem 1.15rem 0; }
+  .p-head h3 { font-size: .95rem; font-weight: 800; color: var(--ink); letter-spacing: -.02em; }
+  .note { margin-left: auto; font-family: 'IBM Plex Mono', monospace; font-size: .72rem; color: var(--dim); }
+  .p-body { padding: .8rem 1.15rem 1.15rem; }
+
+  .grid4 { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: .7rem; }
+  .tileb { background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: .6rem .7rem; }
+  .tileb dt {
+    font-size: .67rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--dim); margin-bottom: .3rem;
+  }
+  .tileb dd { margin: 0; font-size: .82rem; color: var(--ink); line-height: 1.65; }
+  .warn { color: var(--p-amber); font-weight: 700; }
+
+  table { width: 100%; border-collapse: collapse; font-size: .83rem; }
+  th {
+    text-align: left; font-size: .67rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: .07em; color: var(--dim); padding: .4rem .6rem; border-bottom: 1px solid var(--line);
+  }
+  td { padding: .6rem; border-bottom: 1px solid var(--line); color: var(--body); }
+  tr:last-child td { border-bottom: none; }
+  .num { text-align: right; font-family: 'IBM Plex Mono', monospace; white-space: nowrap; }
+  td b { color: var(--ink); }
+  .tag {
+    font-size: .62rem; font-weight: 800; padding: .12rem .45rem; border-radius: 999px;
+    background: var(--accent-tint); color: var(--accent-ink); vertical-align: 1px;
+  }
+  .notice {
+    border-radius: 14px; padding: .6rem .8rem; font-size: .81rem; margin-bottom: .7rem;
+    background: var(--accent-tint); color: var(--accent-ink);
+  }
+
+  .sw-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .45rem .9rem; }
+  .sw { display: flex; align-items: center; gap: .55rem; font-size: .76rem; }
+  .sw-chip { width: 22px; height: 22px; border-radius: 7px; border: 1px solid var(--line-2); flex: none; }
+  .sw-name { font-family: 'IBM Plex Mono', monospace; color: var(--ink); font-weight: 500; }
+  .sw-hex { font-family: 'IBM Plex Mono', monospace; font-size: .68rem; color: var(--dim); margin-left: auto; }
+
+  .toast {
+    position: fixed; right: 1.3rem; bottom: 1.3rem; display: flex; align-items: center; gap: .6rem;
+    background: var(--toast-bg); color: var(--toast-fg); border-radius: 14px; padding: .6rem .9rem;
+    font-size: .83rem; font-weight: 700; box-shadow: var(--shadow-lift);
+  }
+  .toast .mk {
+    width: 18px; height: 18px; border-radius: 50%; background: #2fbf8f; color: #06301f;
+    display: grid; place-items: center; font-size: .68rem; font-weight: 800;
+  }
+
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="tile">a</span>
+    <span class="word">Aeygis Health<span>Sales console</span></span>
+  </div>
+  <span class="badge">colour study · Slate & Gold</span>
+  <span class="spacer"></span>
+  <button class="ghost" id="flip" type="button">Dark</button>
+  <span class="avatar">TA</span>
+</header>
+
+<div class="layout">
+  <section class="queue">
+    <div class="q-head"><h1>Intake queue</h1><span class="count">4</span></div>
+    <div class="chips">
+      <span class="chip on">All <span class="n">4</span></span>
+      <span class="chip"><span class="dot b"></span>New <span class="n">3</span></span>
+      <span class="chip"><span class="dot v"></span>In review <span class="n">1</span></span>
+    </div>
+
+    <div class="card">
+      <div class="c-top">
+        <div><div class="c-name">Northern Ontario Health Network</div>
+        <div class="c-ref">AEY-EGJTTY · Aug 17</div><div class="c-who">Sandra Oyelaran</div></div>
+        <span class="pill p-new">New</span>
+      </div>
+      <div class="stats">
+        <div class="stat"><b>22</b><span>providers</span></div>
+        <div class="stat"><b>11</b><span>locations</span></div>
+        <div class="stat"><b>$74k</b><span>IT / mo</span></div>
+      </div>
+    </div>
+
+    <div class="card sel">
+      <div class="c-top">
+        <div><div class="c-name">Lakeshore Medical Group</div>
+        <div class="c-ref">AEY-CDB3XH · Aug 17</div><div class="c-who">Marcus Bell</div></div>
+        <span class="pill p-review">In review</span>
+      </div>
+      <div class="stats">
+        <div class="stat"><b>10</b><span>providers</span></div>
+        <div class="stat"><b>6</b><span>locations</span></div>
+        <div class="stat"><b>$11.5k</b><span>IT / mo</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="c-top">
+        <div><div class="c-name">Bayview Solo Clinic</div>
+        <div class="c-ref">AEY-K25YTN · Aug 17</div><div class="c-who">Dr. Priya Raman</div></div>
+        <span class="pill p-new">New</span>
+      </div>
+      <div class="stats">
+        <div class="stat"><b>1</b><span>provider</span></div>
+        <div class="stat"><b>1</b><span>location</span></div>
+        <div class="stat"><b>$900</b><span>IT / mo</span></div>
+      </div>
+    </div>
+  </section>
+
+  <main class="detail">
+    <div class="hero">
+      <div class="meta">AEY-CDB3XH · submitted 2026-08-17, 7:58 p.m.</div>
+      <div class="t-row">
+        <h2>Lakeshore Medical Group</h2>
+        <span class="sel-pill">In review</span>
+        <span class="push"><button class="btn" type="button">Save changes</button></span>
+      </div>
+      <nav class="nav">
+        <a class="on" href="#">Overview</a><a href="#">Scope</a><a href="#">Pricing</a>
+        <a href="#">Discovery</a><a href="#">Proposal</a><a href="#">Approvals</a><a href="#">Notes</a>
+      </nav>
+    </div>
+
+    <div class="panel">
+      <div class="p-head"><h3>Overview</h3><span class="note">as submitted</span></div>
+      <div class="p-body">
+        <div class="grid4">
+          <div class="tileb"><dt>Contact</dt><dd>Marcus Bell, CIO<br><span class="mono">m.bell@lakeshore.ca</span></dd></div>
+          <div class="tileb"><dt>Organisation</dt><dd>Family practice<br>10 providers · Ontario</dd></div>
+          <div class="tileb"><dt>Current state</dt><dd>Hosting: mixed<br>IT spend/mo <b class="mono">$11,500</b></dd></div>
+          <div class="tileb"><dt>Security posture</dt><dd>MFA yes · Backups yes<br>IR plan <span class="warn">Not sure</span></dd></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="p-head"><h3>Pricing — Professional</h3><span class="note">price book 2026-07</span></div>
+      <div class="p-body">
+        <div class="notice">Counts confirmed — the quote below is live.</div>
+        <table>
+          <thead><tr><th>Support plan</th><th class="num">Monthly</th><th class="num">Year 1 total</th><th></th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Essentials</td><td class="num">$12,700</td><td class="num"><b>$217,400</b></td>
+              <td class="num"><button class="btn sm line" type="button">Generate</button></td>
+            </tr>
+            <tr>
+              <td>Full Managed <span class="tag">Recommended</span></td>
+              <td class="num">$24,000</td><td class="num"><b>$353,000</b></td>
+              <td class="num"><button class="btn sm" type="button">Generate</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="p-head"><h3>Palette</h3><span class="note">light · dark</span></div>
+      <div class="p-body sw-grid">
+      <div class="sw"><span class="sw-chip" style="background:var(--ground)"></span><span class="sw-name">--ground</span><span class="sw-hex">#f7f5ef · #141210</span></div>
+      <div class="sw"><span class="sw-chip" style="background:var(--surface)"></span><span class="sw-name">--surface</span><span class="sw-hex">#ffffff · #1b1815</span></div>
+      <div class="sw"><span class="sw-chip" style="background:var(--ink)"></span><span class="sw-name">--ink</span><span class="sw-hex">#23201a · #f2f0ea</span></div>
+      <div class="sw"><span class="sw-chip" style="background:var(--body)"></span><span class="sw-name">--body</span><span class="sw-hex">#57534a · #c8c3b7</span></div>
+      <div class="sw"><span class="sw-chip" style="background:var(--dim)"></span><span class="sw-name">--dim</span><span class="sw-hex">#655f52 · #9a9486</span></div>
+      <div class="sw"><span class="sw-chip" style="background:var(--accent)"></span><span class="sw-name">--accent</span><span class="sw-hex">#0b8585 · #2fb5aa</span></div>
+      <div class="sw"><span class="sw-chip" style="background:var(--accent-fill)"></span><span class="sw-name">--accent-fill</span><span class="sw-hex">#0a7c7c · #2bb3a7</span></div>
+      <div class="sw"><span class="sw-chip" style="background:var(--accent-tint)"></span><span class="sw-name">--accent-tint</span><span class="sw-hex">#e2f2ef · #10302c</span></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast"><span class="mk">✓</span>Changes saved — discovery 14/20</div>
+
+<script>
+  // Two-state mock toggle. The real console has three states (follow-system /
+  // light / dark); a mock only needs to show both palettes.
+  var btn = document.getElementById('flip');
+  btn.addEventListener('click', function () {
+    var root = document.documentElement;
+    var dark = root.getAttribute('data-theme') === 'dark';
+    if (dark) { root.removeAttribute('data-theme'); btn.textContent = 'Dark'; }
+    else { root.setAttribute('data-theme', 'dark'); btn.textContent = 'Light'; }
+  });
+</script>
+</body>
+</html>

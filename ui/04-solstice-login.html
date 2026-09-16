@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Solstice — login</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  /* SOLSTICE login — split brand panel. The teal world on the left carries the
+     company; the form on the right stays calm and white. Gold is the moment. */
+  :root {
+    --rail-a: #06302d;
+    --rail-b: #0b8585;
+    --ground: #f2f8f7;
+    --card: #ffffff;
+    --line: #e2ecea;
+    --line-2: #cadfdc;
+    --ink: #0d2321;
+    --body: #46605d;
+    --dim: #7d9491;
+    --accent: #0b8585;
+    --accent-deep: #085e5e;
+    --accent-tint: #ddf0ee;
+    --gold-bright: #e8b84a;
+    --display: 'Sora', system-ui, sans-serif;
+    --font: 'Inter', system-ui, sans-serif;
+    --mono: 'Space Mono', ui-monospace, monospace;
+    --ease: cubic-bezier(.18,.9,.24,1);
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: var(--font); font-size: 14px; color: var(--body);
+    background: var(--ground); overflow: hidden;
+    display: grid; grid-template-columns: minmax(0, 46%) minmax(0, 54%);
+  }
+
+  /* ── brand panel ─────────────────────────────────────────────────── */
+  .brandside {
+    background: linear-gradient(160deg, var(--rail-a), var(--rail-b) 135%);
+    background-size: 100% 130%;
+    color: #d7ecea; padding: 46px 50px; position: relative; overflow: hidden;
+    display: flex; flex-direction: column;
+    animation: slideIn .6s var(--ease) both, drift 14s ease-in-out infinite alternate;
+  }
+  @keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } }
+  @keyframes drift { to { background-position: 0 60%; } }
+  /* concentric rings — the proposal cover motif, so console and document rhyme */
+  .rings { position: absolute; right: -170px; bottom: -170px; width: 520px; height: 520px; }
+  .rings i {
+    position: absolute; inset: 0; border-radius: 50%; border: 1px solid rgba(255,255,255,.09);
+    animation: ring 3.2s var(--ease) both;
+  }
+  .rings i:nth-child(2) { inset: 60px; border-color: rgba(232,184,74,.18); animation-delay: .15s; }
+  .rings i:nth-child(3) { inset: 120px; animation-delay: .3s; }
+  .rings i:nth-child(4) { inset: 180px; border-color: rgba(232,184,74,.22); animation-delay: .45s; }
+  @keyframes ring { from { opacity: 0; transform: scale(.92); } }
+  .dot { position: absolute; width: 9px; height: 9px; border-radius: 50%; background: var(--gold-bright); top: 57px; left: 50%; box-shadow: 0 0 18px rgba(232,184,74,.6); }
+
+  .lockup { display: flex; align-items: center; gap: 13px; }
+  .mark {
+    width: 44px; height: 44px; border-radius: 13px; background: #fff; color: var(--accent-deep);
+    display: grid; place-items: center; font-family: var(--display); font-weight: 700; font-size: 21px;
+    box-shadow: 0 8px 22px rgba(0,0,0,.3);
+  }
+  .lockup b { font-family: var(--display); font-size: 19px; font-weight: 600; color: #fff; display: block; letter-spacing: -.01em; }
+  .lockup span { font-size: 12px; color: rgba(215,236,234,.75); }
+
+  .hero { margin-top: auto; max-width: 400px; position: relative; z-index: 1; }
+  .hero h1 {
+    font-family: var(--display); font-size: 31px; font-weight: 600; color: #fff;
+    line-height: 1.2; letter-spacing: -.02em;
+    animation: rise .6s var(--ease) both .25s;
+  }
+  .hero h1 em { font-style: normal; color: var(--gold-bright); }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } }
+  .hero p { margin-top: 12px; font-size: 13.5px; color: rgba(215,236,234,.85); line-height: 1.65; animation: rise .6s var(--ease) both .35s; }
+
+  .stats { display: flex; gap: 30px; margin-top: 28px; animation: rise .6s var(--ease) both .45s; }
+  .stat b { font-family: var(--display); display: block; font-size: 21px; color: #fff; font-weight: 600; }
+  .stat span { font-size: 11px; color: rgba(215,236,234,.7); }
+
+  .bfoot { margin-top: 34px; font-family: var(--mono); font-size: 10px; color: rgba(215,236,234,.55); animation: rise .6s var(--ease) both .55s; }
+
+  /* ── form side ───────────────────────────────────────────────────── */
+  .formside { display: grid; place-items: center; padding: 40px; }
+  .panel { width: 384px; animation: rise .6s var(--ease) both .2s; }
+  .panel h2 { font-family: var(--display); font-size: 22px; font-weight: 600; color: var(--ink); letter-spacing: -.02em; }
+  .panel .sub { font-size: 13px; color: var(--dim); margin: 5px 0 26px; }
+
+  .field { margin-bottom: 15px; }
+  label { display: block; font-size: 12.5px; font-weight: 600; color: var(--ink); margin-bottom: 6px; }
+  .input {
+    display: flex; align-items: center; gap: 10px;
+    background: #fff; border: 1.5px solid var(--line-2); border-radius: 12px;
+    padding: 11px 14px; transition: all .18s var(--ease);
+  }
+  .input input { all: unset; flex: 1; font-size: 14px; color: var(--ink); font-family: var(--font); }
+  .input.focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(11,133,133,.12); }
+  .icon { color: var(--dim); font-size: 13px; }
+
+  .row { display: flex; justify-content: space-between; align-items: center; margin: 2px 0 20px; }
+  .remember { display: flex; gap: 8px; align-items: center; font-size: 12.5px; }
+  .box { width: 16px; height: 16px; border-radius: 5px; background: var(--accent); position: relative; }
+  .box::after { content: '✓'; position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-size: 10px; font-weight: 700; }
+  .row a { color: var(--accent-deep); font-size: 12.5px; font-weight: 600; text-decoration: none; }
+  .row a:hover { text-decoration: underline; }
+
+  .btn {
+    width: 100%; font-family: var(--font); font-size: 14.5px; font-weight: 600; padding: 13px;
+    border: none; border-radius: 12px; cursor: pointer;
+    background: var(--accent); color: #fff;
+    box-shadow: 0 12px 28px -10px rgba(11,133,133,.55);
+    transition: all .18s var(--ease);
+  }
+  .btn:hover { background: var(--accent-deep); transform: translateY(-1px); }
+  .alt {
+    width: 100%; margin-top: 10px; font-size: 13px; font-weight: 600; padding: 11px;
+    border: 1.5px solid var(--line-2); border-radius: 12px; background: #fff; color: var(--body);
+    cursor: pointer; transition: all .18s var(--ease);
+  }
+  .alt:hover { border-color: var(--accent); color: var(--accent-deep); }
+
+  .note {
+    margin-top: 20px; padding: 12px 14px; border-radius: 12px;
+    background: var(--accent-tint); border: 1px solid var(--line-2);
+    font-size: 12px; color: var(--body); line-height: 1.6;
+  }
+  .note b { color: var(--accent-deep); }
+  .gold-note { color: #8a6410; background: #fbf2da; border-color: #f0dfae; margin-top: 8px; }
+
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<aside class="brandside">
+  <div class="rings"><i></i><i></i><i></i><i></i></div>
+  <div class="lockup">
+    <div class="mark">a</div>
+    <div><b>aeygis</b><span>Sales console</span></div>
+  </div>
+
+  <div class="hero">
+    <h1>From assessment to <em>signed proposal</em>, one pipeline.</h1>
+    <p>Intake, discovery, pricing, a 26-page branded proposal, and a sha-bound approval trail — for Ontario clinics moving to managed Canadian cloud.</p>
+    <div class="stats">
+      <div class="stat"><b>4</b><span>open assessments</span></div>
+      <div class="stat"><b>16</b><span>proposal versions</span></div>
+      <div class="stat"><b>2</b><span>awaiting decision</span></div>
+    </div>
+  </div>
+
+  <div class="bfoot">PHIPA-aligned · AWS ca-central-1 · encrypted at rest and in transit</div>
+</aside>
+
+<main class="formside">
+  <div class="panel">
+    <h2>Sign in</h2>
+    <p class="sub">Welcome back — use your staff account.</p>
+
+    <div class="field">
+      <label>Email</label>
+      <div class="input"><span class="icon">✉</span><input value="s.chen@aeygis.com"></div>
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <div class="input focus"><span class="icon">🔒</span><input type="password" value="••••••••••••"><span class="icon">👁</span></div>
+    </div>
+
+    <div class="row">
+      <span class="remember"><span class="box"></span>Remember this device</span>
+      <a href="#">Forgot password?</a>
+    </div>
+
+    <button class="btn">Sign in</button>
+    <button class="alt">Sign in with recovery code</button>
+
+  </div>
+</main>
+</body>
+</html>

@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Solstice — Aeygis-branded teal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  /* ═══════════════════════════════════════════════════════════════════════
+     SOLSTICE — the branded one. Deep-teal gradient rail pulled straight from
+     the Aeygis palette (#0b8585) with the deck's gold as the counterpoint,
+     mint-tinted ground, floating white cards with teal-tinted shadows.
+     The console finally looks like the company that ships the proposal.
+     Motion: slow gradient drift on the rail, buoyant card entrances.
+     ═══════════════════════════════════════════════════════════════════════ */
+  :root {
+    --rail-a: #06302d;
+    --rail-b: #0b8585;
+    --ground: #f2f8f7;
+    --card: #ffffff;
+    --line: #e2ecea;
+    --line-2: #cadfdc;
+    --ink: #0d2321;
+    --body: #46605d;
+    --dim: #7d9491;
+    --accent: #0b8585;
+    --accent-deep: #085e5e;
+    --accent-tint: #ddf0ee;
+    --gold: #b8860b; --gold-bright: #e8b84a; --gold-tint: #fbf2da;
+    --blue: #2f6fb8; --blue-tint: #e5effa;
+    --rose: #b8474f; --rose-tint: #fae8e9;
+    --shadow: 0 2px 4px rgba(11,133,133,.05), 0 16px 36px -14px rgba(11,133,133,.18);
+    --display: 'Sora', system-ui, sans-serif;
+    --font: 'Inter', system-ui, sans-serif;
+    --mono: 'Space Mono', ui-monospace, monospace;
+    --ease: cubic-bezier(.18,.9,.24,1);
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: var(--font); font-size: 13.5px; line-height: 1.55;
+    color: var(--body); background: var(--ground); overflow: hidden;
+  }
+
+  .app { display: grid; grid-template-columns: 250px 356px minmax(0,1fr); height: 100vh; }
+
+  /* ── gradient rail ───────────────────────────────────────────────── */
+  .rail {
+    background: linear-gradient(168deg, var(--rail-a), var(--rail-b) 130%);
+    background-size: 100% 130%;
+    color: #d7ecea; padding: 22px 16px; display: flex; flex-direction: column;
+    animation: railIn .55s var(--ease) both, gradDrift 14s ease-in-out infinite alternate;
+    position: relative; overflow: hidden;
+  }
+  @keyframes railIn { from { opacity: 0; transform: translateX(-16px); } }
+  @keyframes gradDrift { to { background-position: 0 60%; } }
+  .rail::after {
+    content: ''; position: absolute; width: 420px; height: 420px; border-radius: 50%;
+    border: 1px solid rgba(232,184,74,.14); right: -210px; bottom: -160px;
+  }
+  .rail::before {
+    content: ''; position: absolute; width: 300px; height: 300px; border-radius: 50%;
+    border: 1px solid rgba(255,255,255,.08); right: -130px; bottom: -90px; z-index: 0;
+  }
+  .brand { display: flex; align-items: center; gap: 11px; padding: 0 6px 24px; }
+  .brand-mark {
+    width: 34px; height: 34px; border-radius: 11px; background: #fff; color: var(--accent-deep);
+    display: grid; place-items: center; font-family: var(--display); font-weight: 700; font-size: 17px;
+    box-shadow: 0 6px 16px rgba(0,0,0,.25);
+  }
+  .brand b { font-family: var(--display); font-size: 16px; font-weight: 600; color: #fff; letter-spacing: -.01em; }
+  .brand span { display: block; font-size: 11px; color: rgba(215,236,234,.75); margin-top: -2px; }
+
+  .nav-label { font-size: 10px; text-transform: uppercase; letter-spacing: .14em; color: rgba(215,236,234,.55); padding: 12px 10px 7px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; padding: 8.5px 12px; border-radius: 10px;
+    font-size: 13px; font-weight: 500; color: rgba(224,240,239,.85); cursor: pointer;
+    transition: background .18s, transform .18s var(--ease); position: relative; z-index: 1;
+  }
+  .nav-item:hover { background: rgba(255,255,255,.08); transform: translateX(2px); }
+  .nav-item.active { background: rgba(255,255,255,.14); color: #fff; font-weight: 600; }
+  .nav-item.active::before {
+    content: ''; position: absolute; left: -16px; top: 8px; bottom: 8px; width: 3px;
+    background: var(--gold-bright); border-radius: 0 3px 3px 0;
+  }
+  .nav-item .count {
+    margin-left: auto; font-family: var(--mono); font-size: 10.5px;
+    background: rgba(255,255,255,.12); border-radius: 999px; padding: 1px 8px;
+  }
+  .nav-item.active .count { background: var(--gold-bright); color: #3d2c05; font-weight: 700; }
+
+  .rail-card {
+    margin-top: auto; position: relative; z-index: 1;
+    background: rgba(255,255,255,.09); border: 1px solid rgba(255,255,255,.14);
+    border-radius: 14px; padding: 13px 14px; backdrop-filter: blur(6px);
+  }
+  .rail-card .t { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: rgba(215,236,234,.6); }
+  .rail-card .v { font-family: var(--display); font-size: 20px; color: #fff; font-weight: 600; margin-top: 2px; }
+  .rail-card .s { font-size: 11.5px; color: var(--gold-bright); margin-top: 1px; }
+  .user { display: flex; gap: 10px; align-items: center; padding: 14px 6px 0; position: relative; z-index: 1; }
+  .avatar {
+    width: 30px; height: 30px; border-radius: 50%; background: var(--gold-bright); color: #3d2c05;
+    display: grid; place-items: center; font-size: 11px; font-weight: 700;
+  }
+  .user b { display: block; color: #fff; font-size: 12.5px; font-weight: 600; }
+  .user span { font-size: 10.5px; color: rgba(215,236,234,.7); }
+
+  /* ── queue ───────────────────────────────────────────────────────── */
+  .queue { padding: 22px 18px; overflow-y: auto; border-right: 1px solid var(--line); }
+  .q-head { display: flex; align-items: baseline; justify-content: space-between; padding: 0 4px 4px; }
+  .q-head h1 { font-family: var(--display); font-size: 17px; font-weight: 600; color: var(--ink); letter-spacing: -.015em; }
+  .q-head span { font-family: var(--mono); font-size: 10.5px; color: var(--dim); }
+  .filters { display: flex; gap: 6px; padding: 10px 2px 14px; }
+  .chip {
+    font-size: 11.5px; font-weight: 600; padding: 4px 12px; border-radius: 999px;
+    background: #fff; border: 1px solid var(--line); color: var(--dim); cursor: pointer;
+    transition: all .18s var(--ease);
+  }
+  .chip.on { background: var(--accent); border-color: var(--accent); color: #fff; box-shadow: 0 6px 14px -6px rgba(11,133,133,.5); }
+  .chip:hover:not(.on) { border-color: var(--line-2); color: var(--body); }
+
+  .q-card {
+    background: var(--card); border-radius: 16px; padding: 14px 16px; margin-bottom: 10px;
+    box-shadow: var(--shadow); border: 1.5px solid transparent; cursor: pointer;
+    transition: transform .22s var(--ease), box-shadow .22s, border-color .22s;
+    animation: floatIn .6s var(--ease) both;
+  }
+  .q-card:nth-child(1) { animation-delay: .1s; } .q-card:nth-child(2) { animation-delay: .17s; }
+  .q-card:nth-child(3) { animation-delay: .24s; } .q-card:nth-child(4) { animation-delay: .31s; }
+  @keyframes floatIn { from { opacity: 0; transform: translateY(14px); } }
+  .q-card:hover, .q-card.demo-hover { transform: translateY(-3px); box-shadow: 0 4px 8px rgba(11,133,133,.06), 0 26px 48px -18px rgba(11,133,133,.3); }
+  .q-card.sel { border-color: var(--accent); }
+  .q-top { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+  .q-name { font-family: var(--display); font-weight: 600; font-size: 14px; color: var(--ink); letter-spacing: -.01em; }
+  .q-ref { font-family: var(--mono); font-size: 10px; color: var(--dim); margin-top: 2px; }
+  .q-bar { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+  .meter { flex: 1; height: 5px; border-radius: 999px; background: var(--accent-tint); overflow: hidden; }
+  .meter i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--accent), #14b8a6); animation: fill 1.2s var(--ease) both .5s; transform-origin: left; }
+  @keyframes fill { from { transform: scaleX(0); } }
+  .q-bar span { font-size: 10.5px; color: var(--dim); white-space: nowrap; }
+  .pill {
+    font-size: 10px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase;
+    padding: 3.5px 9px; border-radius: 999px; white-space: nowrap;
+  }
+  .p-new { background: var(--blue-tint); color: var(--blue); }
+  .p-review { background: var(--gold-tint); color: var(--gold); }
+  .p-ent { background: var(--rose-tint); color: var(--rose); }
+  .p-ok { background: var(--accent-tint); color: var(--accent-deep); }
+
+  /* ── detail ──────────────────────────────────────────────────────── */
+  .detail { overflow-y: auto; padding: 24px 28px; }
+  .hero {
+    border-radius: 20px; padding: 22px 24px; margin-bottom: 18px; position: relative; overflow: hidden;
+    background: linear-gradient(120deg, var(--rail-a), var(--rail-b) 90%); color: #fff;
+    box-shadow: 0 20px 44px -16px rgba(11,133,133,.45);
+    animation: floatIn .55s var(--ease) both .12s;
+  }
+  .hero::after {
+    content: ''; position: absolute; width: 340px; height: 340px; border-radius: 50%;
+    border: 1px solid rgba(232,184,74,.25); right: -120px; top: -170px;
+  }
+  .hero .ref { font-family: var(--mono); font-size: 10.5px; color: rgba(215,236,234,.8); }
+  .hero-row { display: flex; align-items: center; gap: 14px; margin-top: 4px; }
+  .hero h2 { font-family: var(--display); font-size: 23px; font-weight: 600; letter-spacing: -.02em; }
+  .hero .pill { background: rgba(232,184,74,.2); color: var(--gold-bright); }
+  .hero-stats { display: flex; gap: 26px; margin-top: 14px; }
+  .hs b { font-family: var(--display); display: block; font-size: 19px; font-weight: 600; }
+  .hs span { font-size: 11px; color: rgba(215,236,234,.75); }
+  .hero-actions { position: absolute; right: 22px; top: 22px; display: flex; gap: 9px; z-index: 1; }
+
+  .btn {
+    font-family: var(--font); font-size: 13px; font-weight: 600; padding: 9px 16px;
+    border-radius: 11px; border: 1px solid var(--line-2); background: #fff; color: var(--ink);
+    cursor: pointer; transition: all .18s var(--ease);
+  }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 10px 20px -10px rgba(13,35,33,.35); }
+  .btn.gold { background: var(--gold-bright); border-color: var(--gold-bright); color: #3d2c05; box-shadow: 0 8px 20px -8px rgba(232,184,74,.7); }
+  .btn.ghost-w { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.25); color: #fff; }
+  .btn.teal { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.sm { font-size: 12px; padding: 6px 12px; border-radius: 9px; }
+  .btn.danger { color: var(--rose); }
+
+  .sec-nav { display: flex; gap: 4px; margin-bottom: 18px; animation: floatIn .5s var(--ease) both .2s; }
+  .sec-nav a {
+    font-size: 12.5px; font-weight: 600; color: var(--dim); text-decoration: none;
+    padding: 7px 14px; border-radius: 999px; transition: all .18s var(--ease);
+  }
+  .sec-nav a:hover { color: var(--accent-deep); background: var(--accent-tint); }
+  .sec-nav a.on { background: var(--accent); color: #fff; box-shadow: 0 6px 14px -6px rgba(11,133,133,.5); }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .panel {
+    background: var(--card); border-radius: 18px; box-shadow: var(--shadow); padding: 18px 20px;
+    animation: floatIn .6s var(--ease) both;
+  }
+  .panel:nth-child(1) { animation-delay: .26s; } .panel:nth-child(2) { animation-delay: .33s; }
+  .panel:nth-child(3) { animation-delay: .40s; }
+  .panel.wide { grid-column: 1 / -1; }
+  .panel h3 { font-family: var(--display); font-size: 13.5px; font-weight: 600; color: var(--ink); margin-bottom: 13px; display: flex; align-items: center; gap: 9px; }
+
+  .kv { display: grid; gap: 8px; }
+  .kv div { display: flex; justify-content: space-between; font-size: 12.5px; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+  .kv div:last-child { border-bottom: none; }
+  .kv span { color: var(--dim); }
+  .kv b { color: var(--ink); font-weight: 600; }
+  .kv b.bad { color: var(--rose); } .kv b.warn { color: var(--gold); }
+
+  .plan {
+    display: flex; align-items: center; gap: 12px; border: 1.5px solid var(--line);
+    border-radius: 13px; padding: 11px 14px; margin-bottom: 9px; transition: all .2s var(--ease);
+  }
+  .plan:hover { transform: translateX(3px); border-color: var(--line-2); }
+  .plan.rec { border-color: var(--gold-bright); background: linear-gradient(90deg, var(--gold-tint), #fff 65%); }
+  .plan b { font-size: 13px; font-weight: 700; color: var(--ink); }
+  .plan .amt { margin-left: auto; font-family: var(--mono); font-size: 11.5px; color: var(--body); }
+  .plan .rec-t { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--gold); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th { text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); padding: 7px 10px; border-bottom: 1.5px solid var(--line); }
+  td { padding: 10px; border-bottom: 1px solid var(--line); }
+  tr:last-child td { border-bottom: none; }
+  tbody tr { transition: background .16s; }
+  tbody tr:hover { background: #f7fbfa; }
+  .mono { font-family: var(--mono); font-size: 10.5px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="rail">
+    <div class="brand">
+      <div class="brand-mark">a</div>
+      <div><b>aeygis</b><span>Sales console</span></div>
+    </div>
+    <div class="nav-label">Pipeline</div>
+    <div class="nav-item active">Intake queue <span class="count">4</span></div>
+    <div class="nav-item">Proposals <span class="count">16</span></div>
+    <div class="nav-item">Approvals <span class="count">2</span></div>
+    <div class="nav-item">Activity</div>
+    <div class="nav-label">This week</div>
+    <div class="rail-card">
+      <div class="t">Pipeline value</div>
+      <div class="v">$641,900</div>
+      <div class="s">▲ 2 proposals awaiting decision</div>
+    </div>
+    <div class="user">
+      <div class="avatar">TA</div>
+      <div><b>test-approver</b><span>approver · ca-central-1</span></div>
+    </div>
+  </aside>
+
+  <section class="queue">
+    <div class="q-head"><h1>Intake queue</h1><span>4 open</span></div>
+    <div class="filters">
+      <span class="chip on">All</span><span class="chip">New</span><span class="chip">Review</span><span class="chip">Enterprise</span>
+    </div>
+
+    <div class="q-card sel">
+      <div class="q-top">
+        <div><div class="q-name">Lakeshore Medical Group</div><div class="q-ref">AEY-CDB3XH</div></div>
+        <span class="pill p-review">In review</span>
+      </div>
+      <div class="q-bar"><div class="meter"><i style="width:80%"></i></div><span>10 prov · 6 loc · disc. 20/20</span></div>
+    </div>
+
+    <div class="q-card demo-hover">
+      <div class="q-top">
+        <div><div class="q-name">Bayview Solo Clinic</div><div class="q-ref">AEY-K25YTN</div></div>
+        <span class="pill p-new">New</span>
+      </div>
+      <div class="q-bar"><div class="meter"><i style="width:35%"></i></div><span>1 prov · 1 loc · disc. 6/20</span></div>
+    </div>
+
+    <div class="q-card">
+      <div class="q-top">
+        <div><div class="q-name">Riverside Family Practice</div><div class="q-ref">AEY-7SYHQR</div></div>
+        <span class="pill p-review" style="background:var(--gold-tint)">Confirm counts</span>
+      </div>
+      <div class="q-bar"><div class="meter"><i style="width:15%"></i></div><span>counts unconfirmed</span></div>
+    </div>
+
+    <div class="q-card">
+      <div class="q-top">
+        <div><div class="q-name">Northern Ontario Health Network</div><div class="q-ref">AEY-EGJTTY</div></div>
+        <span class="pill p-ent">Enterprise</span>
+      </div>
+      <div class="q-bar"><div class="meter"><i style="width:55%"></i></div><span>22 prov · 11 loc · discovery call</span></div>
+    </div>
+  </section>
+
+  <main class="detail">
+    <div class="hero">
+      <div class="ref">AEY-CDB3XH · submitted 18 Aug 2026</div>
+      <div class="hero-row">
+        <h2>Lakeshore Medical Group</h2>
+        <span class="pill">In review</span>
+      </div>
+      <div class="hero-stats">
+        <div class="hs"><b>10</b><span>providers</span></div>
+        <div class="hs"><b>6</b><span>locations</span></div>
+        <div class="hs"><b>$441,750</b><span>est. current spend / yr</span></div>
+        <div class="hs"><b>$65,000</b><span>one-time migration</span></div>
+      </div>
+      <div class="hero-actions">
+        <button class="btn ghost-w">Save changes</button>
+        <button class="btn gold">Generate proposal</button>
+      </div>
+    </div>
+
+    <nav class="sec-nav">
+      <a class="on" href="#">Overview</a><a href="#">Scope</a><a href="#">Pricing</a>
+      <a href="#">Discovery</a><a href="#">Proposal</a><a href="#">Approvals</a><a href="#">Notes</a>
+    </nav>
+
+    <div class="grid">
+      <div class="panel">
+        <h3>Current environment</h3>
+        <div class="kv">
+          <div><span>Hosting</span><b>Mixed / hybrid</b></div>
+          <div><span>MFA enforced</span><b class="bad">No</b></div>
+          <div><span>Backups tested</span><b class="bad">No</b></div>
+          <div><span>Incident plan</span><b class="warn">Not sure</b></div>
+          <div><span>Last risk assessment</span><b class="bad">Never</b></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Pricing — Professional <span class="pill p-ok">confirmed</span></h3>
+        <div class="plan"><b>Essentials</b><span class="amt">$12,700/mo · yr 1 $217,400</span></div>
+        <div class="plan rec"><b>Full Managed</b><span class="rec-t">Recommended</span><span class="amt">$24,000/mo · yr 1 $353,000</span></div>
+        <div style="margin-top:10px; font-size:12px; color:var(--dim)">Setup $65,000 — base $55,000 + 2 providers + 2 locations</div>
+      </div>
+
+      <div class="panel wide">
+        <h3>Approvals <span class="mono" style="color:var(--dim); font-size:10px">3 versions</span></h3>
+        <table>
+          <thead><tr><th>Version</th><th>Tier / plan</th><th>Setup</th><th>Monthly</th><th>Decision</th><th></th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="mono">v0016</td><td>professional / fullManaged</td>
+              <td class="mono">$65,000</td><td class="mono">$24,000</td>
+              <td><span class="pill p-review">Pending</span></td>
+              <td style="text-align:right; white-space:nowrap">
+                <button class="btn sm">View PDF</button>
+                <button class="btn sm teal">Approve</button>
+                <button class="btn sm danger">Reject</button>
+              </td>
+            </tr>
+            <tr>
+              <td class="mono">v0008</td><td>micro / trainAndWalkAway</td>
+              <td class="mono">$7,500</td><td class="mono">$0</td>
+              <td><span class="pill p-ok">Approved</span></td>
+              <td style="text-align:right"><button class="btn sm">View PDF</button></td>
+            </tr>
+            <tr>
+              <td class="mono">v0003</td><td>micro / trainAndWalkAway</td>
+              <td class="mono">$7,500</td><td class="mono">$0</td>
+              <td><span class="pill p-ok">Approved</span></td>
+              <td style="text-align:right"><button class="btn sm">View PDF</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,81 @@
+{
+  "name": "aeygis-sales-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Aeygis Health sales pipeline: assessment intake, internal console, proposal generation, approval workflow, and delivery.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "sandbox": "cross-env AWS_REGION=ca-central-1 ampx sandbox",
+    "sandbox:delete": "cross-env AWS_REGION=ca-central-1 ampx sandbox delete",
+    "secret:salt": "cross-env AWS_REGION=ca-central-1 ampx sandbox secret set IP_HASH_SALT",
+    "bootstrap": "cross-env AWS_REGION=ca-central-1 cdk bootstrap aws://326629581669/ca-central-1",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint:boundaries": "depcruise --config .dependency-cruiser.cjs packages amplify apps",
+    "check:synth": "node scripts/check-synth.mjs",
+    "verify:email": "cross-env AWS_REGION=ca-central-1 tsx scripts/verify-email-delivery.mjs",
+    "resend": "cross-env AWS_REGION=ca-central-1 tsx scripts/resend-proposal.mjs",
+    "verify": "node scripts/verify-guest-access.mjs && node scripts/verify-browser-signing.mjs && cross-env AWS_REGION=ca-central-1 node scripts/verify-console-access.mjs && cross-env AWS_REGION=ca-central-1 node scripts/verify-encryption.mjs",
+    "verify:signing": "node scripts/verify-sigv4-offline.mjs",
+    "cleanup:tests": "cross-env AWS_REGION=ca-central-1 node scripts/cleanup-test-records.mjs",
+    "verify:console": "cross-env AWS_REGION=ca-central-1 node scripts/verify-console-access.mjs",
+    "cleanup:users": "cross-env AWS_REGION=ca-central-1 node scripts/cleanup-test-users.mjs",
+    "preview:proposal": "tsx scripts/preview-proposal.mjs",
+    "check:layout": "node scripts/check-proposal-layout.mjs",
+    "check:ui": "node scripts/check-console-ui.mjs",
+    "check:actions": "node scripts/check-actions-layout.mjs",
+    "check:dns": "cross-env AWS_REGION=ca-central-1 node scripts/check-dns-dkim.mjs",
+    "check:ses": "cross-env AWS_REGION=ca-central-1 node scripts/check-ses-readiness.mjs",
+    "verify:encryption": "cross-env AWS_REGION=ca-central-1 node scripts/verify-encryption.mjs",
+    "gen:assets": "node scripts/generate-template-assets.mjs",
+    "build:layer": "node scripts/build-chromium-layer.mjs",
+    "seed:demo": "cross-env AWS_REGION=ca-central-1 node scripts/seed-demo-data.mjs",
+    "console": "npm --workspace @aeygis/console run dev",
+    "verify:pricing": "node scripts/verify-site-pricing.mjs",
+    "verify:site": "node scripts/verify-sigv4-offline.mjs && node scripts/verify-site-pricing.mjs && node scripts/verify-site-assessment.mjs",
+    "verify:assessment": "node scripts/verify-site-assessment.mjs",
+    "verify:notification": "cross-env AWS_REGION=ca-central-1 node scripts/verify-lead-notification.mjs",
+    "verify:local-site": "node scripts/verify-site-local.mjs",
+    "verify:phone": "cross-env AWS_REGION=ca-central-1 node scripts/verify-phone-fix.mjs",
+    "site": "python -m http.server 8080 --directory ../aeygis-website-source-code"
+  },
+  "devDependencies": {
+    "@aws-amplify/backend": "^1.24.0",
+    "@aws-amplify/backend-cli": "^1.9.0",
+    "@aws-sdk/client-cognito-identity": "^3.1111.0",
+    "@aws-sdk/client-cognito-identity-provider": "^3.1111.0",
+    "@aws-sdk/client-dynamodb": "^3.1111.0",
+    "@aws-sdk/client-kms": "^3.1111.0",
+    "@aws-sdk/client-lambda": "^3.1111.0",
+    "@aws-sdk/client-s3": "^3.1111.0",
+    "@aws-sdk/client-sesv2": "^3.1116.0",
+    "@aws-sdk/client-ssm": "^3.1111.0",
+    "@sparticuz/chromium-min": "^149.0.0",
+    "@types/node": "^26.2.0",
+    "aws-cdk": "^2.1136.0",
+    "aws-cdk-lib": "^2.265.0",
+    "aws4fetch": "^1.0.20",
+    "constructs": "^10.8.1",
+    "cross-env": "^10.1.0",
+    "dependency-cruiser": "^18.2.0",
+    "puppeteer-core": "^25.8.0",
+    "tsx": "^4.23.12",
+    "typescript": "5.9.3",
+    "vitest": "^4.1.10"
+  },
+  "dependencies": {
+    "aws-amplify": "^6.20.0"
+  },
+  "overrides": {
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  }
+}

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Internal tool: keep it out of search results entirely. -->
+    <meta name="robots" content="noindex, nofollow" />
+    <!-- Matches the Porcelain paper ground so mobile browser chrome blends. -->
+    <meta name="theme-color" content="#f6f5f2" />
+    <!-- Browsers request /favicon.ico unprompted; without this the
+         console logged a 404 on every single load. -->
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <script>
+      /* Applies a stored theme choice BEFORE first paint. Without this an
+         explicit choice flashes the other theme, because the React effect
+         that stamps data-theme runs after the first render.
+         The key must match STORAGE_KEY in src/useTheme.ts. */
+      try {
+        var t = localStorage.getItem('aeygis-console-theme');
+        if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {
+        /* storage blocked - fall back to the system preference */
+      }
+    </script>
+    <title>Aeygis Health — Sales Console</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
